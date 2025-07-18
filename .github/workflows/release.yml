@@ -29,6 +29,17 @@ jobs:
           echo "MINECRAFT_VERSION=$MINECRAFT_VERSION" >> $GITHUB_OUTPUT
           echo "Extracted version: $VERSION"
           echo "Base Minecraft version: $MINECRAFT_VERSION"
+          
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline --pretty=format:"- %s" -10)
+          else
+            COMMITS=$(git log --oneline --pretty=format:"- %s" $LAST_TAG..HEAD)
+          fi
+          echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build with Gradle
         run: ./gradlew build
@@ -49,6 +60,9 @@ jobs:
             - Java 21+
             - Fabric Loader 0.16.14+
             - Meteor Client
+            
+            ## 📋 Changes in this release:
+            ${{ steps.extract_info.outputs.COMMITS }}
             
             ---
             *This is an automated release. Download the .jar file below and place it in your mods folder.*

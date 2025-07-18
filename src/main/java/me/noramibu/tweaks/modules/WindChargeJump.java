@@ -17,7 +17,7 @@ public class WindChargeJump extends Module {
     private final Setting<Double> pitchThreshold = sgGeneral.add(new DoubleSetting.Builder()
         .name("pitch-threshold")
         .description("Minimum downward pitch angle to trigger auto-jump (0 = horizontal, 90 = straight down).")
-        .defaultValue(30.0)
+        .defaultValue(50.0)
         .min(0)
         .max(90)
         .sliderMax(90)
@@ -146,8 +146,5 @@ public class WindChargeJump extends Module {
         // Add upward velocity to make the player jump
         Vec3d velocity = mc.player.getVelocity();
         mc.player.setVelocity(velocity.x, jumpForce.get(), velocity.z);
-        
-        // Play jump sound effect
-        mc.player.playSound(net.minecraft.sound.SoundEvents.ENTITY_PLAYER_HURT_ON_FIRE, 0.5f, 1.2f);
     }
 } 

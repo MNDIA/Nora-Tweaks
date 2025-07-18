@@ -10,3 +10,4 @@ Nora Tweaks is a custom addon for the [Meteor Client](https://meteorclient.com/)
 *   **Legit Mace Kill:** Makes the Mace powerful when swung by amplifying your actual fall distance (only works when falling).
 *   **Chat Utility:** A collection of chat-related tools.
 *   **Hotkey Utility:** Set up quick hotbar changes with key combination.
+*   **Wind Charge Jump:** Automatically jumps when you throw a wind charge underneath yourself for enhanced mobility.
