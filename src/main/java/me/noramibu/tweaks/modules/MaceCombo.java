@@ -160,6 +160,7 @@ public class MaceCombo extends Module {
         awaitingWindChargeUse = false;
         firstUsedMaceSlot = -1;
         windChargeThrowDelay = 0;
+        isUsingWindCharge = false;
     }
 
     @EventHandler
@@ -221,6 +222,19 @@ public class MaceCombo extends Module {
         // Wind charge throw delay timer
         if (windChargeThrowDelay > 0 && --windChargeThrowDelay == 0) {
             switchBackToMace();
+        }
+        
+        // Safety check: reset stuck wind charge states after 10 seconds
+        if (isUsingWindCharge && windChargeThrowDelay == 0 && windChargeJumpTicks == 0) {
+            // If we're using wind charge but no timers are active, something went wrong
+            if (comboTicks % 200 == 0) { // Check every 10 seconds (200 ticks)
+                if (chatFeedback.get()) {
+                    mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cResetting stuck wind charge state"), false);
+                }
+                isUsingWindCharge = false;
+                awaitingWindChargeUse = false;
+                savedMaceSlot = -1;
+            }
         }
     }
 
@@ -357,6 +371,8 @@ public class MaceCombo extends Module {
             }
             
             attackCooldown = 30; // Longer cooldown for ground-based usage
+        } else if (chatFeedback.get()) {
+            mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo wind charge found in hotbar!"), false);
         }
     }
 
@@ -408,6 +424,7 @@ public class MaceCombo extends Module {
             savedMaceSlot = -1;
         }
         isUsingWindCharge = false;
+        awaitingWindChargeUse = false;
     }
 
     private void useWindCharge() {
