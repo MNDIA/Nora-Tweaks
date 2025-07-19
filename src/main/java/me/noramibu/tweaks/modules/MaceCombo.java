@@ -99,6 +99,24 @@ public class MaceCombo extends Module {
         .build()
     );
 
+    private final Setting<Boolean> waitForAttackIndicator = sgCombat.add(new BoolSetting.Builder()
+        .name("wait-for-attack-indicator")
+        .description("Wait for attack indicator to be full before attacking, unless very close to landing.")
+        .defaultValue(true)
+        .build()
+    );
+
+    private final Setting<Double> closeAttackRange = sgCombat.add(new DoubleSetting.Builder()
+        .name("close-attack-range")
+        .description("Range where attack indicator is ignored and attack happens immediately.")
+        .defaultValue(2.5)
+        .min(1.0)
+        .max(5.0)
+        .sliderMax(4.0)
+        .visible(() -> waitForAttackIndicator.get())
+        .build()
+    );
+
     // State
     private LivingEntity target = null;
     private boolean comboActive = false;
@@ -254,14 +272,41 @@ public class MaceCombo extends Module {
     }
 
     private boolean shouldAutoAttack() {
-        return !mc.player.isOnGround() && mc.player.fallDistance >= 1.5 && 
-               attackCooldown == 0 && hasLaunched && isTargetInRange(attackRange.get());
+        if (!mc.player.isOnGround() && mc.player.fallDistance >= 1.5 && 
+            attackCooldown == 0 && hasLaunched && isTargetInRange(attackRange.get())) {
+            
+            // Check if we should wait for attack indicator
+            if (waitForAttackIndicator.get()) {
+                double distanceToTarget = mc.player.distanceTo(target);
+                // Attack immediately if very close to landing, otherwise wait for full indicator
+                return distanceToTarget <= closeAttackRange.get() || isAttackIndicatorFull();
+            }
+            
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isAttackIndicatorFull() {
+        // Check if attack indicator is full (1.0 = full charge)
+        return mc.player.getAttackCooldownProgress(0.0f) >= 1.0f;
     }
 
     private boolean shouldUseGroundWindCharge() {
-        return mc.player.isOnGround() && attackCooldown == 0 && !awaitingGroundCombo && 
-               !awaitingWindChargeUse && isTargetInRange(attackRange.get()) && 
-               !isTargetInRange(2.0) && !isUsingWindCharge && hasWindCharges();
+        if (mc.player.isOnGround() && attackCooldown == 0 && !awaitingGroundCombo && 
+            !awaitingWindChargeUse && isTargetInRange(attackRange.get()) && 
+            !isTargetInRange(2.0) && !isUsingWindCharge && hasWindCharges()) {
+            
+            // Check if we should wait for attack indicator
+            if (waitForAttackIndicator.get()) {
+                double distanceToTarget = mc.player.distanceTo(target);
+                // Use wind charge immediately if very close, otherwise wait for full indicator
+                return distanceToTarget <= closeAttackRange.get() || isAttackIndicatorFull();
+            }
+            
+            return true;
+        }
+        return false;
     }
 
     private boolean isTargetInRange(double range) {
@@ -394,13 +439,8 @@ public class MaceCombo extends Module {
             }
         }
         
-        // Set timer for jump - use instant mode if enabled
-        windChargeJumpTicks = instantWindCharge.get() ? 0 : windChargeDelay.get();
-        
-        // If instant mode, perform jump immediately
-        if (instantWindCharge.get()) {
-            performWindChargeJump();
-        }
+        // Improved jump timing - wait a bit longer for better wind charge effect
+        windChargeJumpTicks = instantWindCharge.get() ? 2 : windChargeDelay.get() + 2;
         
         // Set delay before switching back to mace (5 ticks = 0.25 seconds)
         windChargeThrowDelay = 5;
@@ -410,9 +450,9 @@ public class MaceCombo extends Module {
     private void performWindChargeJump() {
         if (mc.player == null) return;
         
-        // Enhanced jump with better velocity control
+        // Enhanced jump with better velocity control and timing
         Vec3d currentVelocity = mc.player.getVelocity();
-        double jumpBoost = 0.42; // Standard jump strength
+        double jumpBoost = 0.6; // Increased jump strength for better height
         mc.player.setVelocity(currentVelocity.x, jumpBoost, currentVelocity.z);
         
         if (chatFeedback.get()) {
