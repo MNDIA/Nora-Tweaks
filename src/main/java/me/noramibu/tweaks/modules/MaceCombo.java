@@ -26,20 +26,20 @@ public class MaceCombo extends Module {
     private final Setting<Double> attackRange = sgGeneral.add(new DoubleSetting.Builder()
         .name("attack-range")
         .description("Maximum range to auto-attack target.")
-        .defaultValue(3.5)
+        .defaultValue(4.5)
         .min(2.0)
-        .max(6.0)
-        .sliderMax(5.0)
+        .max(8.0)
+        .sliderMax(6.0)
         .build()
     );
 
     private final Setting<Double> targetRange = sgGeneral.add(new DoubleSetting.Builder()
         .name("target-range")
         .description("Maximum range to maintain target tracking.")
-        .defaultValue(8.0)
+        .defaultValue(12.0)
         .min(5.0)
-        .max(15.0)
-        .sliderMax(12.0)
+        .max(20.0)
+        .sliderMax(15.0)
         .build()
     );
 
@@ -94,7 +94,7 @@ public class MaceCombo extends Module {
 
     private final Setting<Boolean> optimizePitch = sgCombat.add(new BoolSetting.Builder()
         .name("optimize-pitch")
-        .description("Automatically optimize pitch angle for maximum jump height.")
+        .description("Set pitch to 85° instead of 90° for better wind charge trajectory and jump height.")
         .defaultValue(true)
         .build()
     );
@@ -113,6 +113,7 @@ public class MaceCombo extends Module {
     private int windChargeUseTicks = 0;
     private boolean awaitingWindChargeUse = false;
     private int firstUsedMaceSlot = -1;
+    private int windChargeThrowDelay = 0;
 
     public MaceCombo() {
         super(NoraTweaks.CATEGORY, "mace-combo", "Auto-attacks targets and chains mace combos with wind charges.");
@@ -142,6 +143,7 @@ public class MaceCombo extends Module {
         windChargeUseTicks = 0;
         awaitingWindChargeUse = false;
         firstUsedMaceSlot = -1;
+        windChargeThrowDelay = 0;
     }
 
     @EventHandler
@@ -181,6 +183,22 @@ public class MaceCombo extends Module {
             }
         }
 
+        // Handle wind charge throw delay timer
+        if (windChargeThrowDelay > 0) {
+            windChargeThrowDelay--;
+            if (windChargeThrowDelay == 0) {
+                // Now it's safe to switch back to mace
+                if (savedMaceSlot != -1) {
+                    mc.player.getInventory().setSelectedSlot(savedMaceSlot);
+                    if (chatFeedback.get()) {
+                        mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Switched back to mace (slot " + savedMaceSlot + ")"), false);
+                    }
+                }
+                isUsingWindCharge = false;
+                savedMaceSlot = -1;
+            }
+        }
+
         if (!comboActive) return;
 
         comboTicks++;
@@ -207,7 +225,7 @@ public class MaceCombo extends Module {
         }
 
         // Check if we have mace - only switch when needed for combat
-        if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && !hasAnyMaceInHand()) {
+        if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && !hasAnyMaceInHand() && !awaitingWindChargeUse) {
             switchToMace();
         }
 
@@ -247,8 +265,8 @@ public class MaceCombo extends Module {
                         isUsingWindCharge = true;
                         awaitingWindChargeUse = true;
                         
-                        // Set timer for wind charge use (2 ticks = 0.1 seconds)
-                        windChargeUseTicks = 2;
+                        // Set timer for wind charge use (5 ticks = 0.25 seconds)
+                        windChargeUseTicks = 5;
                         
                         if (chatFeedback.get()) {
                             mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bSwitched to wind charge (slot " + windChargeSlot + ")"), false);
@@ -272,8 +290,8 @@ public class MaceCombo extends Module {
                     isUsingWindCharge = true;
                     awaitingWindChargeUse = true;
                     
-                    // Set timer for wind charge use (2 ticks = 0.1 seconds)
-                    windChargeUseTicks = 2;
+                    // Set timer for wind charge use (5 ticks = 0.25 seconds)
+                    windChargeUseTicks = 5;
                     
                     if (chatFeedback.get()) {
                         mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bSwitched to wind charge (slot " + windChargeSlot + ")"), false);
@@ -281,6 +299,8 @@ public class MaceCombo extends Module {
                 } else if (chatFeedback.get()) {
                     mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo wind charge found in hotbar!"), false);
                 }
+            } else if (chatFeedback.get() && !hasWindCharges()) {
+                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo wind charges available!"), false);
             }
             awaitingGroundCombo = false;
         }
@@ -297,10 +317,24 @@ public class MaceCombo extends Module {
             mc.player.setPitch(90.0f); // Straight down
         }
         
-        // Use wind charge
-        mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
-        if (chatFeedback.get()) {
-            mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bWind Charge used!"), false);
+        // Try using wind charge in off-hand first, then main hand
+        if (mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
+            mc.interactionManager.interactItem(mc.player, Hand.OFF_HAND);
+            mc.player.swingHand(Hand.OFF_HAND);
+            if (chatFeedback.get()) {
+                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bWind Charge used (off-hand)!"), false);
+            }
+        } else if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE) {
+            // Use wind charge with right-click in main hand
+            mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
+            mc.player.swingHand(Hand.MAIN_HAND);
+            if (chatFeedback.get()) {
+                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bWind Charge used (main-hand)!"), false);
+            }
+        } else {
+            if (chatFeedback.get()) {
+                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cError: No wind charge in hand!"), false);
+            }
         }
         
         // Set timer for jump - use instant mode if enabled
@@ -311,6 +345,8 @@ public class MaceCombo extends Module {
             performWindChargeJump();
         }
         
+        // Set delay before switching back to mace (5 ticks = 0.25 seconds)
+        windChargeThrowDelay = 5;
         awaitingWindChargeUse = false;
     }
 
@@ -326,16 +362,7 @@ public class MaceCombo extends Module {
             mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bJump executed!"), false);
         }
         
-        // Switch back to mace immediately
-        if (savedMaceSlot != -1) {
-            mc.player.getInventory().setSelectedSlot(savedMaceSlot);
-            if (chatFeedback.get()) {
-                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Switched back to mace (slot " + savedMaceSlot + ")"), false);
-            }
-        }
-        
-        isUsingWindCharge = false;
-        savedMaceSlot = -1;
+        // Note: Switching back to mace is now handled by windChargeThrowDelay timer
     }
 
     private void startCombo(LivingEntity livingTarget) {
