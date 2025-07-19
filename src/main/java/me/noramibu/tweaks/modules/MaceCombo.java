@@ -110,7 +110,6 @@ public class MaceCombo extends Module {
     private boolean lastOnGround = false;
     private int windChargeJumpTicks = 0;
     private int savedMaceSlot = -1;
-    private int windChargeUseTicks = 0;
     private boolean awaitingWindChargeUse = false;
     private int firstUsedMaceSlot = -1;
     private int windChargeThrowDelay = 0;
@@ -140,7 +139,6 @@ public class MaceCombo extends Module {
         lastOnGround = false;
         windChargeJumpTicks = 0;
         savedMaceSlot = -1;
-        windChargeUseTicks = 0;
         awaitingWindChargeUse = false;
         firstUsedMaceSlot = -1;
         windChargeThrowDelay = 0;
@@ -167,37 +165,8 @@ public class MaceCombo extends Module {
     private void onTick(TickEvent.Pre event) {
         if (mc.player == null || mc.world == null) return;
 
-        // Handle wind charge jump timer
-        if (windChargeJumpTicks > 0) {
-            windChargeJumpTicks--;
-            if (windChargeJumpTicks == 0) {
-                performWindChargeJump();
-            }
-        }
-
-        // Handle wind charge use timer
-        if (windChargeUseTicks > 0) {
-            windChargeUseTicks--;
-            if (windChargeUseTicks == 0) {
-                useWindCharge();
-            }
-        }
-
-        // Handle wind charge throw delay timer
-        if (windChargeThrowDelay > 0) {
-            windChargeThrowDelay--;
-            if (windChargeThrowDelay == 0) {
-                // Now it's safe to switch back to mace
-                if (savedMaceSlot != -1) {
-                    mc.player.getInventory().setSelectedSlot(savedMaceSlot);
-                    if (chatFeedback.get()) {
-                        mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Switched back to mace (slot " + savedMaceSlot + ")"), false);
-                    }
-                }
-                isUsingWindCharge = false;
-                savedMaceSlot = -1;
-            }
-        }
+        // Handle all timers efficiently
+        handleTimers();
 
         if (!comboActive) return;
 
@@ -210,94 +179,171 @@ public class MaceCombo extends Module {
             return;
         }
 
-        // Check target validity using horizontal distance
+        // Check target validity using horizontal distance (more efficient)
+        if (!isTargetValid()) {
+            return;
+        }
+
+        // Handle mace switching only when needed
+        handleMaceSwitching();
+
+        // Track launch state
+        updateLaunchState();
+
+        // Handle combat logic
+        handleCombatLogic();
+    }
+
+    private void handleTimers() {
+        // Wind charge jump timer
+        if (windChargeJumpTicks > 0 && --windChargeJumpTicks == 0) {
+            performWindChargeJump();
+        }
+
+        // Wind charge throw delay timer
+        if (windChargeThrowDelay > 0 && --windChargeThrowDelay == 0) {
+            switchBackToMace();
+        }
+    }
+
+    private boolean isTargetValid() {
         if (target == null || target.isDead() || target.isRemoved()) {
             endCombo("Target lost!");
-            return;
-        }
-        double horizontalDistance = Math.sqrt(
-            Math.pow(mc.player.getX() - target.getX(), 2) + 
-            Math.pow(mc.player.getZ() - target.getZ(), 2)
-        );
-        if (horizontalDistance > targetRange.get()) {
-            endCombo("Target too far!");
-            return;
+            return false;
         }
 
-        // Check if we have mace - only switch when needed for combat
-        if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && !hasAnyMaceInHand() && !awaitingWindChargeUse) {
+        // Use squared distance for better performance
+        double dx = mc.player.getX() - target.getX();
+        double dz = mc.player.getZ() - target.getZ();
+        double horizontalDistanceSquared = dx * dx + dz * dz;
+        
+        if (horizontalDistanceSquared > targetRange.get() * targetRange.get()) {
+            endCombo("Target too far!");
+            return false;
+        }
+
+        return true;
+    }
+
+    private void handleMaceSwitching() {
+        if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && 
+            !hasAnyMaceInHand() && !awaitingWindChargeUse) {
             switchToMace();
         }
+    }
 
-        // Track if player has been launched (high Y velocity or high fall distance)
+    private void updateLaunchState() {
         if (mc.player.getVelocity().y > 0.5 || mc.player.fallDistance > 3.0) {
             hasLaunched = true;
         }
+    }
 
-        // Auto-attack when falling and close to target (with cooldown)
-        if (!mc.player.isOnGround() && mc.player.fallDistance >= 1.5 && attackCooldown == 0 && hasLaunched) {
-            double distanceToTarget = mc.player.distanceTo(target);
-            if (distanceToTarget <= attackRange.get()) {
-                // Ensure we have a mace for attack if lock is enabled
-                if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && !hasAnyMaceInHand()) {
-                    switchToMace();
-                }
-                
-                if (autoRotate.get()) rotateToTarget();
-                attackTarget();
-                attackCooldown = 20; // 1 second cooldown
-                hasLaunched = false;
-                // Prepare to wind charge/jump on landing
-                awaitingGroundCombo = true;
-            }
+    private void handleCombatLogic() {
+        // Auto-attack when falling and close to target
+        if (shouldAutoAttack()) {
+            performAutoAttack();
         }
 
-        // Ground-based wind charge usage when target is nearby
-        if (mc.player.isOnGround() && attackCooldown == 0 && !awaitingGroundCombo && !awaitingWindChargeUse) {
-            double distanceToTarget = mc.player.distanceTo(target);
-            if (distanceToTarget <= attackRange.get() && distanceToTarget > 2.0) { // Close but not too close
-                // Check if we have wind charges and target is in range
-                if (!isUsingWindCharge && hasWindCharges()) {
+        // Ground-based wind charge usage
+        if (shouldUseGroundWindCharge()) {
+            initiateGroundWindCharge();
+        }
+
+        // Detect ground contact for wind charge + jump
+        handleGroundContact();
+    }
+
+    private boolean shouldAutoAttack() {
+        return !mc.player.isOnGround() && mc.player.fallDistance >= 1.5 && 
+               attackCooldown == 0 && hasLaunched && isTargetInRange(attackRange.get());
+    }
+
+    private boolean shouldUseGroundWindCharge() {
+        return mc.player.isOnGround() && attackCooldown == 0 && !awaitingGroundCombo && 
+               !awaitingWindChargeUse && isTargetInRange(attackRange.get()) && 
+               !isTargetInRange(2.0) && !isUsingWindCharge && hasWindCharges();
+    }
+
+    private boolean isTargetInRange(double range) {
+        if (target == null) return false;
+        double distanceSquared = mc.player.distanceTo(target);
+        return distanceSquared <= range;
+    }
+
+    private void performAutoAttack() {
+        // Ensure we have a mace for attack if lock is enabled
+        if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && !hasAnyMaceInHand()) {
+            switchToMace();
+        }
+        
+        if (autoRotate.get()) rotateToTarget();
+        attackTarget();
+        attackCooldown = 20; // 1 second cooldown
+        hasLaunched = false;
+        awaitingGroundCombo = true;
+    }
+
+    private void initiateGroundWindCharge() {
+        // Check if wind charge is in off-hand first (no slot switching needed)
+        if (mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
+            isUsingWindCharge = true;
+            awaitingWindChargeUse = false; // Use immediately
+            useWindCharge(); // Use wind charge immediately
+            
+            if (chatFeedback.get()) {
+                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bUsing wind charge (off-hand)"), false);
+            }
+            
+            attackCooldown = 30; // Longer cooldown for ground-based usage
+            return;
+        }
+        
+        // Check hotbar slots
+        int windChargeSlot = getWindChargeSlot();
+        if (windChargeSlot != -1) {
+            savedMaceSlot = mc.player.getInventory().getSelectedSlot();
+            mc.player.getInventory().setSelectedSlot(windChargeSlot);
+            isUsingWindCharge = true;
+            awaitingWindChargeUse = false; // Use immediately
+            useWindCharge(); // Use wind charge immediately
+            
+            if (chatFeedback.get()) {
+                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bSwitched to wind charge (slot " + windChargeSlot + ")"), false);
+            }
+            
+            attackCooldown = 30; // Longer cooldown for ground-based usage
+        }
+    }
+
+    private void handleGroundContact() {
+        boolean onGround = mc.player.isOnGround();
+        if (awaitingGroundCombo && !lastOnGround && onGround && !awaitingWindChargeUse) {
+            if (!isUsingWindCharge && hasWindCharges()) {
+                // Check off-hand first (no slot switching needed)
+                if (mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
+                    isUsingWindCharge = true;
+                    awaitingWindChargeUse = false; // Use immediately
+                    useWindCharge(); // Use wind charge immediately
+                    
+                    if (chatFeedback.get()) {
+                        mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bUsing wind charge (off-hand)"), false);
+                    }
+                } else {
+                    // Check hotbar slots
                     int windChargeSlot = getWindChargeSlot();
                     if (windChargeSlot != -1) {
                         savedMaceSlot = mc.player.getInventory().getSelectedSlot();
                         mc.player.getInventory().setSelectedSlot(windChargeSlot);
                         isUsingWindCharge = true;
-                        awaitingWindChargeUse = true;
-                        
-                        // Set timer for wind charge use (5 ticks = 0.25 seconds)
-                        windChargeUseTicks = 5;
+                        awaitingWindChargeUse = false; // Use immediately
+                        useWindCharge(); // Use wind charge immediately
                         
                         if (chatFeedback.get()) {
                             mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bSwitched to wind charge (slot " + windChargeSlot + ")"), false);
                         }
-                        
-                        attackCooldown = 30; // Longer cooldown for ground-based usage
+                    } else if (chatFeedback.get()) {
+                        mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo wind charge found in hotbar!"), false);
                     }
-                }
-            }
-        }
-
-        // Detect ground contact for wind charge + jump
-        boolean onGround = mc.player.isOnGround();
-        if (awaitingGroundCombo && !lastOnGround && onGround && !awaitingWindChargeUse) {
-            // Only trigger if we have wind charges
-            if (!isUsingWindCharge && hasWindCharges()) {
-                int windChargeSlot = getWindChargeSlot();
-                if (windChargeSlot != -1) {
-                    savedMaceSlot = mc.player.getInventory().getSelectedSlot();
-                    mc.player.getInventory().setSelectedSlot(windChargeSlot);
-                    isUsingWindCharge = true;
-                    awaitingWindChargeUse = true;
-                    
-                    // Set timer for wind charge use (5 ticks = 0.25 seconds)
-                    windChargeUseTicks = 5;
-                    
-                    if (chatFeedback.get()) {
-                        mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bSwitched to wind charge (slot " + windChargeSlot + ")"), false);
-                    }
-                } else if (chatFeedback.get()) {
-                    mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo wind charge found in hotbar!"), false);
                 }
             } else if (chatFeedback.get() && !hasWindCharges()) {
                 mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo wind charges available!"), false);
@@ -305,6 +351,18 @@ public class MaceCombo extends Module {
             awaitingGroundCombo = false;
         }
         lastOnGround = onGround;
+    }
+
+    private void switchBackToMace() {
+        // Only switch slots if we saved a slot (meaning we switched from a hotbar slot)
+        if (savedMaceSlot != -1) {
+            mc.player.getInventory().setSelectedSlot(savedMaceSlot);
+            if (chatFeedback.get()) {
+                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Switched back to mace (slot " + savedMaceSlot + ")"), false);
+            }
+            savedMaceSlot = -1;
+        }
+        isUsingWindCharge = false;
     }
 
     private void useWindCharge() {
@@ -317,7 +375,7 @@ public class MaceCombo extends Module {
             mc.player.setPitch(90.0f); // Straight down
         }
         
-        // Try using wind charge in off-hand first, then main hand
+        // Use wind charge - prioritize off-hand, then main hand
         if (mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
             mc.interactionManager.interactItem(mc.player, Hand.OFF_HAND);
             mc.player.swingHand(Hand.OFF_HAND);
@@ -325,7 +383,6 @@ public class MaceCombo extends Module {
                 mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bWind Charge used (off-hand)!"), false);
             }
         } else if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE) {
-            // Use wind charge with right-click in main hand
             mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
             mc.player.swingHand(Hand.MAIN_HAND);
             if (chatFeedback.get()) {
@@ -421,22 +478,33 @@ public class MaceCombo extends Module {
     }
 
     private boolean hasAnyMaceInHand() {
-        return mc.player.getMainHandStack().getItem() == Items.MACE || mc.player.getOffHandStack().getItem() == Items.MACE;
+        return mc.player.getMainHandStack().getItem() == Items.MACE || 
+               mc.player.getOffHandStack().getItem() == Items.MACE;
     }
 
     private boolean hasWindCharges() {
-        if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE) return true;
-        if (mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) return true;
+        // Check main hand and off hand first (faster)
+        if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE || 
+            mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
+            return true;
+        }
+        
+        // Check hotbar slots
         for (int i = 0; i < 9; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == Items.WIND_CHARGE) return true;
+            if (mc.player.getInventory().getStack(i).getItem() == Items.WIND_CHARGE) {
+                return true;
+            }
         }
         return false;
     }
 
     // Returns the hotbar slot index of a wind charge, or -1 if not found
     private int getWindChargeSlot() {
+        // Check hotbar slots only (off-hand is handled separately in useWindCharge)
         for (int i = 0; i < 9; i++) {
-            if (mc.player.getInventory().getStack(i).getItem() == Items.WIND_CHARGE) return i;
+            if (mc.player.getInventory().getStack(i).getItem() == Items.WIND_CHARGE) {
+                return i;
+            }
         }
         return -1;
     }
