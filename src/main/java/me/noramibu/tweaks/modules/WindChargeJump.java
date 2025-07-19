@@ -1,14 +1,13 @@
 package me.noramibu.tweaks.modules;
 
 import me.noramibu.tweaks.NoraTweaks;
-import meteordevelopment.meteorclient.events.entity.EntityAddedEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.entity.projectile.WindChargeEntity;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 
 public class WindChargeJump extends Module {
@@ -16,7 +15,7 @@ public class WindChargeJump extends Module {
 
     private final Setting<Double> pitchThreshold = sgGeneral.add(new DoubleSetting.Builder()
         .name("pitch-threshold")
-        .description("Minimum downward pitch angle to trigger auto-jump (0 = horizontal, 90 = straight down).")
+        .description("Minimum downward pitch angle when throwing to trigger auto-jump (0 = horizontal, 90 = straight down).")
         .defaultValue(50.0)
         .min(0)
         .max(90)
@@ -58,8 +57,14 @@ public class WindChargeJump extends Module {
         .build()
     );
 
-    private boolean windChargeThrown = false;
-    private int jumpTick = 0;
+    private final Setting<Boolean> chatFeedback = sgGeneral.add(new BoolSetting.Builder()
+        .name("chat-feedback")
+        .description("Send a chat message when wind charge jump is triggered.")
+        .defaultValue(true)
+        .build()
+    );
+
+    private int jumpTicksRemaining = 0;
 
     public WindChargeJump() {
         super(NoraTweaks.CATEGORY, "wind-charge-jump", "Automatically jumps when you throw a wind charge underneath yourself.");
@@ -67,41 +72,27 @@ public class WindChargeJump extends Module {
 
     @Override
     public void onActivate() {
-        windChargeThrown = false;
-        jumpTick = 0;
+        jumpTicksRemaining = 0;
     }
 
     @EventHandler
     private void onPacketSend(PacketEvent.Send event) {
         if (mc.player == null) return;
 
-        if (event.packet instanceof PlayerInteractItemC2SPacket packet) {
+        // Don't interfere if Mace Combo is using wind charges
+        if (MaceCombo.isUsingWindCharge) return;
+
+        if (event.packet instanceof PlayerInteractItemC2SPacket) {
             // Check if player is using a wind charge
             if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE || 
                 mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
                 
                 if (shouldTriggerJump()) {
-                    windChargeThrown = true;
-                    jumpTick = jumpDelay.get();
-                }
-            }
-        }
-    }
-
-    @EventHandler
-    private void onEntityAdded(EntityAddedEvent event) {
-        if (mc.player == null || !windChargeThrown) return;
-
-        // Check if a wind charge entity was spawned near the player
-        if (event.entity instanceof WindChargeEntity windCharge) {
-            Vec3d playerPos = mc.player.getPos();
-            Vec3d windChargePos = windCharge.getPos();
-            
-            // Check if the wind charge is close to the player (indicating they threw it)
-            if (playerPos.distanceTo(windChargePos) < 3.0) {
-                // The wind charge will create a wind burst shortly, so we schedule the jump
-                if (jumpTick <= 0) {
-                    jumpTick = jumpDelay.get();
+                    jumpTicksRemaining = jumpDelay.get();
+                    
+                    if (chatFeedback.get()) {
+                        mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Wind Charge Jump triggered!"), false);
+                    }
                 }
             }
         }
@@ -111,12 +102,11 @@ public class WindChargeJump extends Module {
     private void onTick(meteordevelopment.meteorclient.events.world.TickEvent.Pre event) {
         if (mc.player == null) return;
 
-        if (windChargeThrown && jumpTick > 0) {
-            jumpTick--;
+        if (jumpTicksRemaining > 0) {
+            jumpTicksRemaining--;
             
-            if (jumpTick == 0) {
+            if (jumpTicksRemaining == 0) {
                 performJump();
-                windChargeThrown = false;
             }
         }
     }

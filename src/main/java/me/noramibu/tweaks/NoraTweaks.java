@@ -6,7 +6,8 @@ import me.noramibu.tweaks.modules.AutoFarmLand;
 import me.noramibu.tweaks.modules.CategoryManagerModule;
 import me.noramibu.tweaks.modules.ChatUtility;
 import me.noramibu.tweaks.modules.HotkeyUtility;
-import me.noramibu.tweaks.modules.MaceKill;
+import me.noramibu.tweaks.modules.LegitMaceKill;
+import me.noramibu.tweaks.modules.MaceCombo;
 import me.noramibu.tweaks.modules.WindChargeJump;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
@@ -30,7 +31,8 @@ public class NoraTweaks extends MeteorAddon {
         Modules.get().add(new CategoryManagerModule());
         Modules.get().add(new ChatUtility());
         Modules.get().add(new HotkeyUtility());
-        Modules.get().add(new MaceKill());
+        Modules.get().add(new MaceCombo());
+        Modules.get().add(new LegitMaceKill());
         Modules.get().add(new WindChargeJump());
     }
 

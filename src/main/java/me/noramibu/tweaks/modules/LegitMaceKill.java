@@ -19,7 +19,7 @@ import net.minecraft.network.packet.c2s.play.VehicleMoveC2SPacket;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
-public class MaceKill extends Module {
+public class LegitMaceKill extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgInfo = settings.createGroup("Note: Disable \"Smash Attack\" in the Criticals module to make this work properly.");
     private final Setting<Boolean> preventDeath = sgGeneral.add(new BoolSetting.Builder()
@@ -51,7 +51,7 @@ public class MaceKill extends Module {
             .defaultValue(true)
             .build());
 
-    public MaceKill() {
+    public LegitMaceKill() {
         super(NoraTweaks.CATEGORY, "legit-mace-kill", "Amplifies mace damage based on fall distance. Only works when falling from minimum height.");
     }
 
