@@ -16,6 +16,7 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.Items;
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
 import net.minecraft.network.packet.c2s.play.VehicleMoveC2SPacket;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
@@ -51,6 +52,21 @@ public class LegitMaceKill extends Module {
             .defaultValue(true)
             .build());
 
+    private final Setting<Integer> damageChance = sgGeneral.add(new IntSetting.Builder()
+            .name("Damage Chance")
+            .description("Percentage chance for damage amplification to trigger (1-100%).")
+            .defaultValue(100)
+            .min(1)
+            .max(100)
+            .sliderMax(100)
+            .build());
+
+    private final Setting<Boolean> chatFeedback = sgGeneral.add(new BoolSetting.Builder()
+            .name("Chat Feedback")
+            .description("Send a chat message when mace damage amplification is triggered.")
+            .defaultValue(true)
+            .build());
+
     public LegitMaceKill() {
         super(NoraTweaks.CATEGORY, "legit-mace-kill", "Amplifies mace damage based on fall distance. Only works when falling from minimum height.");
     }
@@ -76,7 +92,17 @@ public class LegitMaceKill extends Module {
         // Don't activate if fall distance is below minimum height threshold
         if (mc.player.fallDistance < minFallHeight.get()) return;
         
+        // Check damage chance
+        if (Math.random() * 100 > damageChance.get()) return;
+        
         int blocks = getMaxHeightAbovePlayer();
+        
+        // Send chat feedback if enabled
+        if (chatFeedback.get()) {
+            double originalFall = mc.player.fallDistance;
+            double amplifiedFall = originalFall * fallMultiplier.get();
+            mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Mace Kill triggered! Fall: " + String.format("%.1f", originalFall) + " → " + String.format("%.1f", amplifiedFall) + " blocks"), false);
+        }
         
         int packetsRequired = (int) Math.ceil(Math.abs(blocks / 10.0));
         if (packetsRequired > 20) packetsRequired = 1;

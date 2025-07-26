@@ -3,6 +3,7 @@ package me.noramibu.tweaks;
 import me.noramibu.tweaks.category.CustomCategoryManager;
 import me.noramibu.tweaks.modules.AutoDirtPath;
 import me.noramibu.tweaks.modules.AutoFarmLand;
+import me.noramibu.tweaks.modules.AutoLogStrip;
 import me.noramibu.tweaks.modules.CategoryManagerModule;
 import me.noramibu.tweaks.modules.ChatUtility;
 import me.noramibu.tweaks.modules.HotkeyUtility;
@@ -28,6 +29,7 @@ public class NoraTweaks extends MeteorAddon {
         // Modules
         Modules.get().add(new AutoDirtPath());
         Modules.get().add(new AutoFarmLand());
+        Modules.get().add(new AutoLogStrip());
         Modules.get().add(new CategoryManagerModule());
         Modules.get().add(new ChatUtility());
         Modules.get().add(new HotkeyUtility());
