@@ -33,9 +33,14 @@ public class LegitMaceKill extends Module {
             .description("Multiplies your current fall distance by this amount (e.g., 1.5x means 10 blocks becomes 15 blocks)")
             .defaultValue(1.5)
             .min(1.0)
-            .max(10.0)
+            .max(500.0)
             .sliderMin(1.0)
-            .sliderMax(5.0)
+            .sliderMax(50.0)
+            .build());
+    private final Setting<Boolean> capAt170Blocks = sgGeneral.add(new BoolSetting.Builder()
+            .name("Cap at 170 blocks")
+            .description("Limits amplified fall height to 170 blocks to reduce desync and anti-cheat issues. Disable to allow full multiplier.")
+            .defaultValue(true)
             .build());
     private final Setting<Double> minFallHeight = sgGeneral.add(new DoubleSetting.Builder()
             .name("Minimum Fall Height")
@@ -179,9 +184,7 @@ public class LegitMaceKill extends Module {
         }
         
         int multipliedHeight = (int) (currentFallDistance * fallMultiplier.get());
-        
-        // Cap at reasonable maximum to prevent issues
-        multipliedHeight = Math.min(multipliedHeight, 170);
+        if (capAt170Blocks.get()) multipliedHeight = Math.min(multipliedHeight, 170);
         
         // Check if we can safely teleport to this height
         int targetHeight = playerPos.getY() + multipliedHeight;
