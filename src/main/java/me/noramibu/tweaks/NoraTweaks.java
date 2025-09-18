@@ -10,15 +10,22 @@ import me.noramibu.tweaks.modules.HotkeyUtility;
 import me.noramibu.tweaks.modules.LegitMaceKill;
 import me.noramibu.tweaks.modules.MaceCombo;
 import me.noramibu.tweaks.modules.WindChargeJump;
+import me.noramibu.tweaks.modules.AutoTrapPlus;
+import me.noramibu.tweaks.modules.SafePathing;
+import me.noramibu.tweaks.modules.DeepslateESP;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import org.slf4j.Logger;
+import meteordevelopment.meteorclient.commands.Commands;
+import me.noramibu.tweaks.commands.MobCheckerCommand;
+import net.fabricmc.loader.api.FabricLoader;
 
 public class NoraTweaks extends MeteorAddon {
     public static final Logger LOG = LogUtils.getLogger();
     public static final Category CATEGORY = new Category("Nora Tweaks");
+    public static final Category BARITONE_CATEGORY = new Category("Nora Tweaks - Baritone");
 
     @Override
     public void onInitialize() {
@@ -36,15 +43,47 @@ public class NoraTweaks extends MeteorAddon {
         Modules.get().add(new MaceCombo());
         Modules.get().add(new LegitMaceKill());
         Modules.get().add(new WindChargeJump());
+        Modules.get().add(new AutoTrapPlus());
+        Modules.get().add(new DeepslateESP());
+
+        if (isBaritonePresent()) {
+            Modules.get().add(new SafePathing());
+        } else {
+            LOG.warn("Baritone not loaded or API classes missing, skipping SafePathing module.");
+        }
+
+        // Commands
+        Commands.add(new MobCheckerCommand());
     }
 
     @Override
     public void onRegisterCategories() {
         Modules.registerCategory(CATEGORY);
+        Modules.registerCategory(BARITONE_CATEGORY);
     }
 
     @Override
     public String getPackage() {
         return "me.noramibu.tweaks";
+    }
+
+    private boolean isBaritonePresent() {
+        // Some builds use different mod IDs; check all known variants
+        FabricLoader fl = FabricLoader.getInstance();
+        boolean modPresent = fl.isModLoaded("baritone")
+            || fl.isModLoaded("baritone-api-fabric")
+            || fl.isModLoaded("baritone-standalone-fabric");
+        if (!modPresent) return false;
+
+        // Hard-check critical classes to avoid NoClassDefFoundError during module instantiation
+        try {
+            Class.forName("baritone.api.BaritoneAPI", false, NoraTweaks.class.getClassLoader());
+            Class.forName("baritone.api.pathing.goals.Goal", false, NoraTweaks.class.getClassLoader());
+            Class.forName("baritone.api.pathing.goals.GoalXZ", false, NoraTweaks.class.getClassLoader());
+            return true;
+        } catch (Throwable t) {
+            LOG.warn("Baritone present but API classes not found: {}: {}", t.getClass().getSimpleName(), t.getMessage());
+            return false;
+        }
     }
 }

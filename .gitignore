@@ -31,3 +31,6 @@ bin/
 # fabric
 
 run/
+notes.txt
+example-code/
+libs/

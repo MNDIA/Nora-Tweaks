@@ -13,3 +13,13 @@ Nora Tweaks is a custom addon for the [Meteor Client](https://meteorclient.com/)
 *   **Chat Utility:** A collection of chat-related tools including keyword notifications, auto-messaging, and desktop toast notifications.
 *   **Hotkey Utility:** Set up quick hotbar changes with key combination.
 *   **Wind Charge Jump:** Automatically jumps when you throw a wind charge underneath yourself for enhanced mobility.
+*   **Deepslate ESP:** Highlights deepslate-related blocks/entities for visibility.
+*   **Auto Trap Plus:** Enhanced trapping helper for faster, more reliable traps.
+*   **Safe Pathing (Experimental):** Baritone avoidance tuning and panic responses (run away, quick cover, go-to coords, pause, logout). Still under heavy development.
+
+## Commands
+
+*   **.mobchecker** — Count nearby mobs with optional range and name filter.
+    *   `.mobchecker` → default range 64
+    *   `.mobchecker <range>` → e.g., `.mobchecker 96`
+    *   `.mobchecker <range> <filter>` → e.g., `.mobchecker 96 zombie`

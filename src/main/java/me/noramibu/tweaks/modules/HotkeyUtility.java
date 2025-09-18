@@ -3,8 +3,6 @@ package me.noramibu.tweaks.modules;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import me.noramibu.tweaks.NoraTweaks;
 import me.noramibu.tweaks.gui.screens.HotkeysScreen;
 import me.noramibu.tweaks.util.Hotkey;
@@ -18,7 +16,6 @@ import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.item.ItemStack;
 import net.minecraft.screen.slot.SlotActionType;
 
 import java.io.File;
