@@ -13,6 +13,7 @@ import me.noramibu.tweaks.modules.WindChargeJump;
 import me.noramibu.tweaks.modules.AutoTrapPlus;
 import me.noramibu.tweaks.modules.SafePathing;
 import me.noramibu.tweaks.modules.DeepslateESP;
+import me.noramibu.tweaks.modules.PearlChecker;
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import meteordevelopment.meteorclient.systems.modules.Category;
@@ -45,6 +46,7 @@ public class NoraTweaks extends MeteorAddon {
         Modules.get().add(new WindChargeJump());
         Modules.get().add(new AutoTrapPlus());
         Modules.get().add(new DeepslateESP());
+        Modules.get().add(new PearlChecker());
 
         if (isBaritonePresent()) {
             Modules.get().add(new SafePathing());
