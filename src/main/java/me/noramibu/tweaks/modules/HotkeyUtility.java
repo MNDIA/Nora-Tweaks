@@ -5,7 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import me.noramibu.tweaks.NoraTweaks;
 import me.noramibu.tweaks.gui.screens.HotkeysScreen;
-import me.noramibu.tweaks.util.Hotkey;
+import me.noramibu.tweaks.utils.Hotkey;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.GameLeftEvent;
 import meteordevelopment.meteorclient.events.meteor.KeyEvent;

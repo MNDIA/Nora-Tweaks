@@ -74,7 +74,15 @@ public class Seeds extends System<Seeds> {
 
         long numericSeed = parseSeed(rawSeed);
         seeds.put(worldName, new Seed(numericSeed, version));
+        save();
         MeteorClient.EVENT_BUS.post(SeedChangedEvent.get(numericSeed));
+    }
+
+    public void removeSeed(String worldName) {
+        if (worldName == null) return;
+        if (seeds.remove(worldName) != null) {
+            save();
+        }
     }
 
     @Override

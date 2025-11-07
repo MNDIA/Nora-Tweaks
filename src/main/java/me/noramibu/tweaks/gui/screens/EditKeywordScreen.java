@@ -1,6 +1,6 @@
 package me.noramibu.tweaks.gui.screens;
 
-import me.noramibu.tweaks.util.Keyword;
+import me.noramibu.tweaks.utils.Keyword;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.WindowScreen;
 import meteordevelopment.meteorclient.gui.widgets.input.WTextBox;

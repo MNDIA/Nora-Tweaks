@@ -9,7 +9,8 @@
   ],
   "client": [
     "ModulesScreenMixin",
-    "SingleModuleScreenMixin"
+    "SingleModuleScreenMixin",
+    "baritone.MineProcessMixin"
   ],
   "injectors": {
     "defaultRequire": 1

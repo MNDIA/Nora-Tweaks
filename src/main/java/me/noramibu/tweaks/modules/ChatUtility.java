@@ -2,7 +2,7 @@ package me.noramibu.tweaks.modules;
 
 import me.noramibu.tweaks.NoraTweaks;
 import me.noramibu.tweaks.gui.screens.KeywordsScreen;
-import me.noramibu.tweaks.util.Keyword;
+import me.noramibu.tweaks.utils.Keyword;
 import meteordevelopment.meteorclient.events.game.ReceiveMessageEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;

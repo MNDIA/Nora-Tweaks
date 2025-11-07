@@ -4,29 +4,27 @@ plugins {
     id("fabric-loom") version "1.12-SNAPSHOT"
 }
 
+val minecraftVersion = project.property("minecraft_version") as String
+val yarnMappings = project.property("yarn_mappings") as String
+val loaderVersion = project.property("loader_version") as String
+val archivesBaseName = project.property("archives_base_name") as String
+val modVersion = project.property("mod_version") as String
+val mavenGroup = project.property("maven_group") as String
+val baritoneVersion = project.property("baritone_version") as String
+
 base {
-    archivesName = properties["archives_base_name"] as String
-    version = properties["mod_version"] as String
-    group = properties["maven_group"] as String
+    archivesName = archivesBaseName
+    version = modVersion
+    group = mavenGroup
 }
 
 repositories {
-    maven {
-        name = "meteor-maven"
-        url = uri("https://maven.meteordev.org/releases")
-    }
-    maven {
-        name = "meteor-maven-snapshots"
-        url = uri("https://maven.meteordev.org/snapshots")
-    }
-    maven {
-        name = "JitPack"
-        url = uri("https://jitpack.io")
-    }
-    maven {
-        name = "DutiReleases"
-        url = uri("https://maven.duti.dev/releases")
-    }
+    mavenCentral()
+    mavenLocal()
+    maven("meteor-maven") { url = uri("https://maven.meteordev.org/releases") }
+    maven("meteor-maven-snapshots") { url = uri("https://maven.meteordev.org/snapshots") }
+    maven("JitPack") { url = uri("https://jitpack.io") }
+    maven("DutiReleases") { url = uri("https://maven.duti.dev/releases") }
 }
 
 val extraLibs = configurations.create("extraLibs")
@@ -37,27 +35,19 @@ configurations.named("implementation") {
 
 dependencies {
     // Fabric
-    minecraft("com.mojang:minecraft:${properties["minecraft_version"] as String}")
-    mappings("net.fabricmc:yarn:${properties["yarn_mappings"] as String}:v2")
-    modImplementation("net.fabricmc:fabric-loader:${properties["loader_version"] as String}")
+    minecraft("com.mojang:minecraft:$minecraftVersion")
+    mappings("net.fabricmc:yarn:$yarnMappings:v2")
+    modImplementation("net.fabricmc:fabric-loader:$loaderVersion")
 
-    // Meteor
-    modImplementation("meteordevelopment:meteor-client:${properties["minecraft_version"] as String}-SNAPSHOT")
+    // Meteor / Baritone (match meteor-rejects)
+    modImplementation("meteordevelopment:meteor-client:${minecraftVersion}-SNAPSHOT")
+    modCompileOnly("meteordevelopment:baritone:${baritoneVersion}-SNAPSHOT")
 
-    compileOnly(files("libs/baritone-api-1.15.0.jar"))
-
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5") {
-        isTransitive = false
-    }
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:linux64") {
-        isTransitive = false
-    }
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:osx") {
-        isTransitive = false
-    }
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:windows64") {
-        isTransitive = false
-    }
+    // Cubiomes native bundles
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5") { isTransitive = false }
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:linux64") { isTransitive = false }
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:osx") { isTransitive = false }
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:windows64") { isTransitive = false }
 }
 
 tasks {

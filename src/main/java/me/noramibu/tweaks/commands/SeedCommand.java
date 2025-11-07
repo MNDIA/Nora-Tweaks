@@ -56,7 +56,7 @@ public class SeedCommand extends Command {
                 text.append(seed.toText());
                 info(text);
             }
-            Seeds.get().seeds.remove(Utils.getWorldName());
+            Seeds.get().removeSeed(Utils.getWorldName());
             return SINGLE_SUCCESS;
         }));
 

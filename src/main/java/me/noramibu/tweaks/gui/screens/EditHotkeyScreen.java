@@ -1,7 +1,7 @@
 package me.noramibu.tweaks.gui.screens;
 
 import me.noramibu.tweaks.modules.HotkeyUtility;
-import me.noramibu.tweaks.util.Hotkey;
+import me.noramibu.tweaks.utils.Hotkey;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.WindowScreen;
 import meteordevelopment.meteorclient.gui.widgets.WItem;
