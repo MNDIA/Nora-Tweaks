@@ -114,7 +114,7 @@ public class HotkeyUtility extends Module {
         if (event.action != Press) return;
 
         for (Hotkey hotkey : hotkeys) {
-            if (hotkey.keybind.matches(true, event.key, event.modifiers)) {
+            if (hotkey.keybind.matches(true, event.key(), event.modifiers())) {
                 if (hotkey.delayLeft > 0) {
                     hotkey.pressCount++;
                 } else {

@@ -445,7 +445,7 @@ public class SafePathing extends Module {
         Entity nearestHostileHyst = nr.entity != null ? nr.entity : null;
         // Optional periodic debug (kept minimal)
         if (debugChat.get() && nearestHostile != null && (debugTicker++ % 40 == 0)) {
-            double dist = mc.player.getPos().distanceTo(nearestHostile.getPos());
+            double dist = mc.player.getEntityPos().distanceTo(nearestHostile.getEntityPos());
             info("Debug: hostile %s at %.1f blocks.", nearestHostile.getName().getString(), dist);
         }
         // Compute panic trigger/safe state with hysteresis
@@ -498,7 +498,7 @@ public class SafePathing extends Module {
 
         try {
             if (panicAction.get() == PanicAction.RUN_AWAY) {
-                Vec3d playerPos = mc.player.getPos();
+                Vec3d playerPos = mc.player.getEntityPos();
                 Vec3d target = computeFleeTarget(playerPos, panicRadius.get(), runDistance.get());
                 if (target == null) target = playerPos.add(1, 0, 0);
                 boolean needSet = !panicking || currentFleeTarget == null;
@@ -720,7 +720,7 @@ public class SafePathing extends Module {
         for (HostileEntity hostile : mc.world.getEntitiesByClass(HostileEntity.class, box, Entity::isAlive)) {
             double d2 = hostile.squaredDistanceTo(playerPos.x, playerPos.y, playerPos.z);
             if (d2 > radiusSq) continue;
-            Vec3d dir = playerPos.subtract(hostile.getPos());
+            Vec3d dir = playerPos.subtract(hostile.getEntityPos());
             double len2 = dir.lengthSquared();
             if (len2 < 1e-6) continue;
             double weight = 1.0 / len2;

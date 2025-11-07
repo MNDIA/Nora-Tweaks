@@ -148,7 +148,7 @@ public class PearlChecker extends Module {
             if (ignoreSelf.get() && owner == mc.player) continue;
 
             String label;
-            if (owner instanceof PlayerEntity p) label = p.getGameProfile().getName();
+            if (owner instanceof PlayerEntity p) label = p.getGameProfile().name();
             else if (owner != null) label = owner.getName().getString();
             else label = pearlOwnerCache.get(pearl.getId());
 
@@ -156,7 +156,7 @@ public class PearlChecker extends Module {
                 continue;
             }
 
-            if (owner instanceof PlayerEntity pset) pearlOwnerCache.put(pearl.getId(), pset.getGameProfile().getName());
+            if (owner instanceof PlayerEntity pset) pearlOwnerCache.put(pearl.getId(), pset.getGameProfile().name());
 
             Utils.set(pos, pearl, event.tickDelta);
             pos.add(0, pearl.getHeight() + 0.25, 0);
@@ -186,14 +186,14 @@ public class PearlChecker extends Module {
         if (!isActive() || mc.world == null) return;
         if (!(event.entity instanceof EnderPearlEntity pearl)) return;
 
-        pearlStartPos.putIfAbsent(pearl.getUuid(), pearl.getPos());
+        pearlStartPos.putIfAbsent(pearl.getUuid(), pearl.getEntityPos());
 
         Entity owner = pearl.getOwner();
         if (!(owner instanceof PlayerEntity player)) return;
         if (notifyIgnoreSelf.get() && player == mc.player) return;
 
         if (notify.get() && !announcedThrown.contains(pearl.getUuid())) {
-            String name = player.getGameProfile().getName();
+            String name = player.getGameProfile().name();
             ChatUtils.info("(highlight)%s(default) threw a pearl at (highlight)%d, %d, %d(default) ~%.1fm away from you.",
                 name,
                 pearl.getBlockPos().getX(), pearl.getBlockPos().getY(), pearl.getBlockPos().getZ(),
@@ -210,7 +210,7 @@ public class PearlChecker extends Module {
         if (isActive() && notifyLand.get() && announcedThrown.contains(pearl.getUuid())) {
             Entity owner = pearl.getOwner();
             String ownerName = null;
-            if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().getName();
+            if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().name();
             else if (owner != null) ownerName = owner.getName().getString();
             else ownerName = pearlOwnerCache.get(pearl.getId());
 
@@ -220,7 +220,7 @@ public class PearlChecker extends Module {
                 double fromDist = PlayerUtils.distanceTo(pearl);
                 Vec3d start = pearlStartPos.get(pearl.getUuid());
                 if (start != null) {
-                    double travelled = start.distanceTo(pearl.getPos());
+                    double travelled = start.distanceTo(pearl.getEntityPos());
                     ChatUtils.info("(highlight)%s's(default) pearl landed at (highlight)%d, %d, %d(default) ~%.1fm away, travelled (highlight)%.1fm(default).",
                         ownerName,
                         pearl.getBlockPos().getX(), pearl.getBlockPos().getY(), pearl.getBlockPos().getZ(),
@@ -271,7 +271,7 @@ public class PearlChecker extends Module {
             if (notifyPredict.get() && announcedThrown.contains(pearl.getUuid()) && !predictedAnnounced.contains(pearl.getUuid())) {
                 Entity owner = pearl.getOwner();
                 String ownerName = null;
-                if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().getName();
+                if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().name();
                 else if (owner != null) ownerName = owner.getName().getString();
                 else ownerName = pearlOwnerCache.get(pearl.getId());
 

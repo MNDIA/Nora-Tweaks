@@ -12,6 +12,7 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.Utils;
+import meteordevelopment.meteorclient.utils.misc.Pool;
 import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
@@ -131,13 +132,14 @@ public class AutoFarm extends Module {
             .build()
     );
 
+    private final Pool<BlockPos.Mutable> blockPosPool = new Pool<>(BlockPos.Mutable::new);
     private final List<BlockPos.Mutable> blocks = new ArrayList<>();
 
     int actions = 0;
 
     public AutoFarm() {
-        super(NoraTweaks.CATEGORY, "auto-farm", "All-in-one farm utility.");
-    }
+        super(NoraTweaks.CATEGORY, "auto-farm", "All-in-one farm utility. (yoinked from Meteor Rejects)");
+    } 
 
     @Override
     public void onDeactivate() {
@@ -166,7 +168,7 @@ public class AutoFarm extends Module {
         actions = 0;
         BlockIterator.register(range.get(), range.get(), (pos, state) -> {
             if (mc.player.getEyePos().distanceTo(Vec3d.ofCenter(pos)) <= range.get())
-                blocks.add(new BlockPos.Mutable(pos.getX(), pos.getY(), pos.getZ()));
+                blocks.add(blockPosPool.get().set(pos));
         });
 
         BlockIterator.after(() -> {
@@ -180,6 +182,8 @@ public class AutoFarm extends Module {
                 if (actions >= bpt.get()) break;
             }
 
+            for (BlockPos.Mutable blockPos : blocks)
+                blockPosPool.free(blockPos);
             blocks.clear();
 
         });

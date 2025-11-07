@@ -10,6 +10,8 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.input.WIntEdit;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.gui.widgets.input.WDropdown;
+import net.minecraft.client.gui.Click;
+import net.minecraft.client.input.KeyInput;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
@@ -147,18 +149,18 @@ public class EditHotkeyScreen extends WindowScreen {
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(Click click, boolean doubled) {
         for (WKeybind w : keybindWidgets) {
-            if (w.onAction(false, button, 0)) return true;
+            if (w.onAction(false, click.buttonInfo().button(), 0)) return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(click, doubled);
     }
 
     @Override
-    public boolean keyPressed(int key, int scanCode, int mods) {
+    public boolean keyPressed(KeyInput input) {
         for (WKeybind w : keybindWidgets) {
-            if (w.onAction(true, key, mods)) return true;
+            if (w.onAction(true, input.key(), input.modifiers())) return true;
         }
-        return super.keyPressed(key, scanCode, mods);
+        return super.keyPressed(input);
     }
 } 

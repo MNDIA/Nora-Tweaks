@@ -498,7 +498,7 @@ public class MaceCombo extends Module {
     }
 
     private void rotateToTarget() {
-        Vec3d targetPos = target.getPos();
+        Vec3d targetPos = target.getEntityPos();
         Rotations.rotate(Rotations.getYaw(targetPos), Rotations.getPitch(targetPos));
     }
 

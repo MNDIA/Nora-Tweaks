@@ -134,7 +134,7 @@ public class AutoDirtPath extends Module {
         BlockPos.stream(mc.player.getBoundingBox().expand(range.get()))
             .map(BlockPos::toImmutable)
             .filter(bp -> targetBlocks.contains(mc.world.getBlockState(bp).getBlock()))
-            .sorted(Comparator.comparing(bp -> mc.player.getPos().distanceTo(Vec3d.ofCenter(bp))))
+            .sorted(Comparator.comparing(bp -> mc.player.getEntityPos().distanceTo(Vec3d.ofCenter(bp))))
             .limit(blocksPerTick.get())
             .forEach(this::turnToPath);
     }

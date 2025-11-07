@@ -59,7 +59,7 @@ public class MobCheckerCommand extends Command {
 		final int rangeSq = range * range;
 		final String filterLower = (mobTypeFilter == null || mobTypeFilter.isEmpty()) ? null : mobTypeFilter.toLowerCase();
 
-		Vec3d center = mc.player.getPos();
+		Vec3d center = mc.player.getEntityPos();
 		Box box = Box.of(center, range * 2.0, range * 2.0, range * 2.0);
 
 		mc.world.getOtherEntities(null, box, entity -> true).forEach(entity -> {
