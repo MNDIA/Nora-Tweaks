@@ -1,8 +1,8 @@
 /*
- * AutoFarm module adapted from Meteor Rejects by request
- * Original source: https://github.com/AntiCope/meteor-rejects/blob/master/src/main/java/anticope/rejects/modules/AutoFarm.java
- * Credit: AntiCope (Meteor Rejects)
- * If Meteor Rejects gets updated, this module will get removed. 
+ * This code partially adapted from Meteor Rejects
+ * Original source: https://github.com/AntiCope/meteor-rejects/
+ * Credit: Meteor Rejects contributors
+ * If Meteor Rejects gets updated, adapted features will get removed.
  */
 package me.noramibu.tweaks.modules;
 
