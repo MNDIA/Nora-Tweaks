@@ -1,3 +1,5 @@
+import org.gradle.api.file.DuplicatesStrategy
+
 plugins {
     id("fabric-loom") version "1.12-SNAPSHOT"
 }
@@ -21,6 +23,16 @@ repositories {
         name = "JitPack"
         url = uri("https://jitpack.io")
     }
+    maven {
+        name = "DutiReleases"
+        url = uri("https://maven.duti.dev/releases")
+    }
+}
+
+val extraLibs = configurations.create("extraLibs")
+
+configurations.named("implementation") {
+    extendsFrom(extraLibs)
 }
 
 dependencies {
@@ -33,6 +45,19 @@ dependencies {
     modImplementation("meteordevelopment:meteor-client:${properties["minecraft_version"] as String}-SNAPSHOT")
 
     compileOnly(files("libs/baritone-api-1.15.0.jar"))
+
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5") {
+        isTransitive = false
+    }
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:linux64") {
+        isTransitive = false
+    }
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:osx") {
+        isTransitive = false
+    }
+    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:windows64") {
+        isTransitive = false
+    }
 }
 
 tasks {
@@ -57,6 +82,14 @@ tasks {
         from("LICENSE") {
             rename { "${it}_${inputs.properties["archivesName"]}" }
         }
+
+        from({
+            configurations["extraLibs"].filter { it.exists() }.map { file ->
+                if (file.isDirectory) file else zipTree(file)
+            }
+        })
+
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
     java {

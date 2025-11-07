@@ -3,6 +3,9 @@
   "package": "me.noramibu.tweaks.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "CountPlacementModifierAccessor",
+    "HeightRangePlacementModifierAccessor",
+    "RarityFilterPlacementModifierAccessor"
   ],
   "client": [
     "ModulesScreenMixin",
