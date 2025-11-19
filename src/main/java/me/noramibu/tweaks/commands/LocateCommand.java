@@ -94,4 +94,3 @@ public class LocateCommand extends Command {
         throw INVALID_FEATURE.create(input);
     }
 }
-

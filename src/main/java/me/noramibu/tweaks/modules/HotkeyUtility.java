@@ -13,7 +13,6 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
-import meteordevelopment.meteorclient.settings.SettingGroup;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.screen.slot.SlotActionType;
@@ -28,8 +27,6 @@ import java.util.List;
 import static meteordevelopment.meteorclient.utils.misc.input.KeyAction.Press;
 
 public class HotkeyUtility extends Module {
-    private final SettingGroup sgGeneral = settings.getDefaultGroup();
-
     public final List<Hotkey> hotkeys = new ArrayList<>();
 
     public HotkeyUtility() {
@@ -114,7 +111,11 @@ public class HotkeyUtility extends Module {
         if (event.action != Press) return;
 
         for (Hotkey hotkey : hotkeys) {
+            //? if >=1.21.10 {
             if (hotkey.keybind.matches(true, event.key(), event.modifiers())) {
+            //?} else
+            /*if (hotkey.keybind.matches(true, event.key, event.modifiers)) {
+            */
                 if (hotkey.delayLeft > 0) {
                     hotkey.pressCount++;
                 } else {
@@ -167,4 +168,4 @@ public class HotkeyUtility extends Module {
             }
         }
     }
-} 
+}

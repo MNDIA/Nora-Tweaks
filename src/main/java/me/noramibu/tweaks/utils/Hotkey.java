@@ -187,4 +187,3 @@ public class Hotkey {
         return hotkey;
     }
 }
-

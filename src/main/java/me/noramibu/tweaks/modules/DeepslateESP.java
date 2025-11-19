@@ -182,5 +182,3 @@ public class DeepslateESP extends Module {
 
     }
 }
-
-

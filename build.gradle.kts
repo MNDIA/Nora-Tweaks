@@ -1,20 +1,19 @@
 import org.gradle.api.file.DuplicatesStrategy
 
 plugins {
-    id("fabric-loom") version "1.12-SNAPSHOT"
+    id("fabric-loom")
 }
 
-val minecraftVersion = project.property("minecraft_version") as String
+val minecraftVersion = stonecutter.current.version
 val yarnMappings = project.property("yarn_mappings") as String
 val loaderVersion = project.property("loader_version") as String
-val archivesBaseName = project.property("archives_base_name") as String
-val modVersion = project.property("mod_version") as String
+val modVersion = project.property("mod.version") as String
 val mavenGroup = project.property("maven_group") as String
-val baritoneVersion = project.property("baritone_version") as String
+val baritoneVersion = "1.21.10"
 
 base {
-    archivesName = archivesBaseName
-    version = modVersion
+    archivesName = project.property("archives_base_name") as String
+    version = "${minecraftVersion}-${modVersion}"
     group = mavenGroup
 }
 
@@ -41,7 +40,9 @@ dependencies {
 
     // Meteor / Baritone (match meteor-rejects)
     modImplementation("meteordevelopment:meteor-client:${minecraftVersion}-SNAPSHOT")
-    modCompileOnly("meteordevelopment:baritone:${baritoneVersion}-SNAPSHOT")
+    modCompileOnly("meteordevelopment:baritone:${baritoneVersion}-SNAPSHOT") {
+        isTransitive = false
+    }
 
     // Cubiomes native bundles
     add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5") { isTransitive = false }
@@ -54,7 +55,7 @@ tasks {
     processResources {
         val propertyMap = mapOf(
             "version" to project.version,
-            "mc_version" to project.property("minecraft_version"),
+            "mc_version" to minecraftVersion,
         )
 
         inputs.properties(propertyMap)

@@ -40,4 +40,4 @@ public class CustomCategory {
     public int hashCode() {
         return Objects.hash(name);
     }
-} 
+}

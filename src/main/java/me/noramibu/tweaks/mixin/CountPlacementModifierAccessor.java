@@ -16,4 +16,3 @@ public interface CountPlacementModifierAccessor {
     @Accessor
     IntProvider getCount();
 }
-

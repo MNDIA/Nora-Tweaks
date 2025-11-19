@@ -53,19 +53,19 @@ public class AutoLogStrip extends Module {
       super(NoraTweaks.CATEGORY, "auto-log-strip", "Automatically places, strips, and breaks logs for efficient processing.");
       this.sgGeneral = this.settings.getDefaultGroup();
       this.sgOperation = this.settings.createGroup("Operation");
-      
+
       this.autoRotate = this.sgGeneral.add(new BoolSetting.Builder()
             .name("auto-rotate")
             .description("Automatically rotate to face target blocks.")
             .defaultValue(true)
             .build());
-            
+
       this.chatFeedback = this.sgGeneral.add(new BoolSetting.Builder()
             .name("chat-feedback")
             .description("Show operation status messages.")
             .defaultValue(true)
             .build());
-            
+
       this.stripDelay = this.sgOperation.add(new IntSetting.Builder()
             .name("strip-delay")
             .description("Delay in ticks before stripping (20 ticks = 1 second).")
@@ -74,7 +74,7 @@ public class AutoLogStrip extends Module {
             .max(20)
             .sliderMax(10)
             .build());
-            
+
       this.breakDelay = this.sgOperation.add(new IntSetting.Builder()
             .name("break-delay")
             .description("Delay in ticks before breaking (20 ticks = 1 second).")
@@ -83,26 +83,26 @@ public class AutoLogStrip extends Module {
             .max(20)
             .sliderMax(10)
             .build());
-            
+
       this.autoPlace = this.sgGeneral.add(new BoolSetting.Builder()
             .name("auto-place")
             .description("Automatically place logs after breaking stripped logs.")
             .defaultValue(true)
             .build());
-            
+
       this.refillOffHand = this.sgGeneral.add(new BoolSetting.Builder()
             .name("refill-off-hand")
             .description("Automatically refill off-hand with logs when empty.")
             .defaultValue(true)
             .build());
-            
+
       this.refillWithAnyLog = this.sgGeneral.add(new BoolSetting.Builder()
             .name("refill-with-any-log")
             .description("Refill off-hand with any log type. If false, only uses the same type as first log.")
             .defaultValue(false)
             .visible(() -> this.refillOffHand.get())
             .build());
-            
+
       // New settings for improved functionality
       this.maxRange = this.sgOperation.add(new DoubleSetting.Builder()
             .name("max-range")
@@ -112,13 +112,13 @@ public class AutoLogStrip extends Module {
             .max(10.0)
             .sliderMax(10.0)
             .build());
-            
+
       this.quietMode = this.sgGeneral.add(new BoolSetting.Builder()
             .name("quiet-mode")
             .description("Reduce chat feedback to essential messages only.")
             .defaultValue(false)
             .build());
-            
+
       this.smartBreaking = this.sgOperation.add(new BoolSetting.Builder()
             .name("smart-breaking")
             .description("Use optimized block breaking method.")
@@ -156,18 +156,18 @@ public class AutoLogStrip extends Module {
    @EventHandler
    private void onBlockUpdate(BlockUpdateEvent event) {
       if (this.mc.player == null || this.mc.world == null) return;
-      
+
       if (event.oldState.isAir() && this.isLogBlock(event.newState.getBlock())) {
          double distance = this.mc.player.squaredDistanceTo(
-            (double)event.pos.getX() + 0.5D, 
-            (double)event.pos.getY() + 0.5D, 
+            (double)event.pos.getX() + 0.5D,
+            (double)event.pos.getY() + 0.5D,
             (double)event.pos.getZ() + 0.5D
          );
-         
+
          double maxRangeSquared = this.maxRange.get() * this.maxRange.get();
          if (distance <= maxRangeSquared) {
             boolean showDebug = this.chatFeedback.get() && !this.quietMode.get();
-            
+
             if (showDebug) {
                this.mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §eDetected log placement at " + event.pos + " (distance: " + String.format("%.1f", Math.sqrt(distance)) + ")"), false);
             }
@@ -246,18 +246,18 @@ public class AutoLogStrip extends Module {
    }
 
    private boolean isLogBlock(Block block) {
-      return block == Blocks.OAK_LOG || block == Blocks.SPRUCE_LOG || block == Blocks.BIRCH_LOG || 
-             block == Blocks.JUNGLE_LOG || block == Blocks.ACACIA_LOG || block == Blocks.DARK_OAK_LOG || 
-             block == Blocks.MANGROVE_LOG || block == Blocks.CHERRY_LOG || block == Blocks.BAMBOO_BLOCK || 
+      return block == Blocks.OAK_LOG || block == Blocks.SPRUCE_LOG || block == Blocks.BIRCH_LOG ||
+             block == Blocks.JUNGLE_LOG || block == Blocks.ACACIA_LOG || block == Blocks.DARK_OAK_LOG ||
+             block == Blocks.MANGROVE_LOG || block == Blocks.CHERRY_LOG || block == Blocks.BAMBOO_BLOCK ||
              block == Blocks.CRIMSON_STEM || block == Blocks.WARPED_STEM;
    }
 
    private boolean isStrippedLogBlock(Block block) {
-      return block == Blocks.STRIPPED_OAK_LOG || block == Blocks.STRIPPED_SPRUCE_LOG || 
-             block == Blocks.STRIPPED_BIRCH_LOG || block == Blocks.STRIPPED_JUNGLE_LOG || 
-             block == Blocks.STRIPPED_ACACIA_LOG || block == Blocks.STRIPPED_DARK_OAK_LOG || 
-             block == Blocks.STRIPPED_MANGROVE_LOG || block == Blocks.STRIPPED_CHERRY_LOG || 
-             block == Blocks.STRIPPED_BAMBOO_BLOCK || block == Blocks.STRIPPED_CRIMSON_STEM || 
+      return block == Blocks.STRIPPED_OAK_LOG || block == Blocks.STRIPPED_SPRUCE_LOG ||
+             block == Blocks.STRIPPED_BIRCH_LOG || block == Blocks.STRIPPED_JUNGLE_LOG ||
+             block == Blocks.STRIPPED_ACACIA_LOG || block == Blocks.STRIPPED_DARK_OAK_LOG ||
+             block == Blocks.STRIPPED_MANGROVE_LOG || block == Blocks.STRIPPED_CHERRY_LOG ||
+             block == Blocks.STRIPPED_BAMBOO_BLOCK || block == Blocks.STRIPPED_CRIMSON_STEM ||
              block == Blocks.STRIPPED_WARPED_STEM;
    }
 
@@ -313,7 +313,7 @@ public class AutoLogStrip extends Module {
 
    private void breakLog() {
       if (this.lastPlacedLog == null || this.mc.interactionManager == null) return;
-      
+
       // Check if block is still in range
       double distance = this.mc.player.squaredDistanceTo(
          (double)this.lastPlacedLog.getX() + 0.5D,
@@ -328,11 +328,11 @@ public class AutoLogStrip extends Module {
          this.waitingToBreak = false;
          return;
       }
-      
+
       BlockState state = this.mc.world.getBlockState(this.lastPlacedLog);
       Block block = state.getBlock();
       boolean showDebug = this.chatFeedback.get() && !this.quietMode.get();
-      
+
       if (showDebug) {
          this.mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §eBreaking stripped log at " + this.lastPlacedLog), false);
       }
@@ -344,7 +344,7 @@ public class AutoLogStrip extends Module {
          this.waitingToBreak = false;
          return;
       }
-      
+
       if (this.mc.player.getMainHandStack().isEmpty() && this.mc.player.getOffHandStack().isEmpty()) {
          if (this.chatFeedback.get()) {
             this.mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo tool in hand for breaking!"), false);
@@ -352,7 +352,7 @@ public class AutoLogStrip extends Module {
          this.waitingToBreak = false;
          return;
       }
-      
+
       if (this.autoRotate.get()) {
          this.rotateToBlock(this.lastPlacedLog);
       }
@@ -379,7 +379,7 @@ public class AutoLogStrip extends Module {
       this.waitingToBreak = false;
       BlockPos brokenPosition = this.lastPlacedLog;
       this.lastPlacedLog = null;
-      
+
       if (this.autoPlace.get()) {
          this.waitingToPlace = true;
          this.placeTimer = 1;
@@ -476,12 +476,12 @@ public class AutoLogStrip extends Module {
    }
 
    private boolean isLogItem(Item item) {
-      return item == Items.OAK_LOG || item == Items.SPRUCE_LOG || item == Items.BIRCH_LOG || 
-             item == Items.JUNGLE_LOG || item == Items.ACACIA_LOG || item == Items.DARK_OAK_LOG || 
-             item == Items.MANGROVE_LOG || item == Items.CHERRY_LOG || item == Items.BAMBOO_BLOCK || 
+      return item == Items.OAK_LOG || item == Items.SPRUCE_LOG || item == Items.BIRCH_LOG ||
+             item == Items.JUNGLE_LOG || item == Items.ACACIA_LOG || item == Items.DARK_OAK_LOG ||
+             item == Items.MANGROVE_LOG || item == Items.CHERRY_LOG || item == Items.BAMBOO_BLOCK ||
              item == Items.CRIMSON_STEM || item == Items.WARPED_STEM;
    }
-   
+
    // Get all supported log types for refill system
    private static final Item[] ALL_LOG_TYPES = {
       Items.OAK_LOG, Items.SPRUCE_LOG, Items.BIRCH_LOG, Items.JUNGLE_LOG,

@@ -93,4 +93,3 @@ public class SeedCommand extends Command {
         return version;
     }
 }
-

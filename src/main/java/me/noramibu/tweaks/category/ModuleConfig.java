@@ -10,4 +10,4 @@ public class ModuleConfig {
     public ModuleConfig(String moduleName) {
         this.moduleName = moduleName;
     }
-} 
+}

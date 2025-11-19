@@ -4,7 +4,6 @@ import me.noramibu.tweaks.modules.HotkeyUtility;
 import me.noramibu.tweaks.utils.Hotkey;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.WindowScreen;
-import meteordevelopment.meteorclient.gui.widgets.WLabel;
 import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WMinus;
@@ -29,7 +28,7 @@ public class HotkeysScreen extends WindowScreen {
     public void reload() {
         table.clear();
         for (Hotkey hotkey : module.hotkeys) {
-            WLabel label = table.add(theme.label(hotkey.keybind.toString())).widget();
+            table.add(theme.label(hotkey.keybind.toString()));
 
             WButton edit = theme.button("Edit");
             edit.action = () -> {
@@ -58,4 +57,4 @@ public class HotkeysScreen extends WindowScreen {
         };
         table.add(addButton).expandX();
     }
-} 
+}

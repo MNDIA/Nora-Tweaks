@@ -183,4 +183,3 @@ public class Ore {
         map.put(placedFeature, new Ore(placedFeature, genStep, idx, active, color, heightContext));
     }
 }
-

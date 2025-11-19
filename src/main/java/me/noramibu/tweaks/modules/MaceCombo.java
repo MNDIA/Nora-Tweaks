@@ -19,7 +19,7 @@ import net.minecraft.util.math.Vec3d;
 public class MaceCombo extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgCombat = settings.createGroup("Combat");
-    
+
     // Static flag to prevent Wind Charge Jump interference
     public static boolean isUsingWindCharge = false;
 
@@ -223,7 +223,7 @@ public class MaceCombo extends Module {
         if (windChargeThrowDelay > 0 && --windChargeThrowDelay == 0) {
             switchBackToMace();
         }
-        
+
         // Safety check: reset stuck wind charge states after 10 seconds
         if (isUsingWindCharge && windChargeThrowDelay == 0 && windChargeJumpTicks == 0) {
             // If we're using wind charge but no timers are active, something went wrong
@@ -248,7 +248,7 @@ public class MaceCombo extends Module {
         double dx = mc.player.getX() - target.getX();
         double dz = mc.player.getZ() - target.getZ();
         double horizontalDistanceSquared = dx * dx + dz * dz;
-        
+
         if (horizontalDistanceSquared > targetRange.get() * targetRange.get()) {
             endCombo("Target too far!");
             return false;
@@ -258,7 +258,7 @@ public class MaceCombo extends Module {
     }
 
     private void handleMaceSwitching() {
-        if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && 
+        if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE &&
             !hasAnyMaceInHand() && !awaitingWindChargeUse) {
             switchToMace();
         }
@@ -286,16 +286,16 @@ public class MaceCombo extends Module {
     }
 
     private boolean shouldAutoAttack() {
-        if (!mc.player.isOnGround() && mc.player.fallDistance >= 1.5 && 
+        if (!mc.player.isOnGround() && mc.player.fallDistance >= 1.5 &&
             attackCooldown == 0 && hasLaunched && isTargetInRange(attackRange.get())) {
-            
+
             // Check if we should wait for attack indicator
             if (waitForAttackIndicator.get()) {
                 double distanceToTarget = mc.player.distanceTo(target);
                 // Attack immediately if very close to landing, otherwise wait for full indicator
                 return distanceToTarget <= closeAttackRange.get() || isAttackIndicatorFull();
             }
-            
+
             return true;
         }
         return false;
@@ -307,17 +307,17 @@ public class MaceCombo extends Module {
     }
 
     private boolean shouldUseGroundWindCharge() {
-        if (mc.player.isOnGround() && attackCooldown == 0 && !awaitingGroundCombo && 
-            !awaitingWindChargeUse && isTargetInRange(attackRange.get()) && 
+        if (mc.player.isOnGround() && attackCooldown == 0 && !awaitingGroundCombo &&
+            !awaitingWindChargeUse && isTargetInRange(attackRange.get()) &&
             !isTargetInRange(2.0) && !isUsingWindCharge && hasWindCharges()) {
-            
+
             // Check if we should wait for attack indicator
             if (waitForAttackIndicator.get()) {
                 double distanceToTarget = mc.player.distanceTo(target);
                 // Use wind charge immediately if very close, otherwise wait for full indicator
                 return distanceToTarget <= closeAttackRange.get() || isAttackIndicatorFull();
             }
-            
+
             return true;
         }
         return false;
@@ -334,7 +334,7 @@ public class MaceCombo extends Module {
         if (lockFirstMace.get() && mc.player.getMainHandStack().getItem() != Items.MACE && !hasAnyMaceInHand()) {
             switchToMace();
         }
-        
+
         if (autoRotate.get()) rotateToTarget();
         attackTarget();
         attackCooldown = 20; // 1 second cooldown
@@ -348,15 +348,15 @@ public class MaceCombo extends Module {
             isUsingWindCharge = true;
             awaitingWindChargeUse = false; // Use immediately
             useWindCharge(); // Use wind charge immediately
-            
+
             if (chatFeedback.get()) {
                 mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bUsing wind charge (off-hand)"), false);
             }
-            
+
             attackCooldown = 30; // Longer cooldown for ground-based usage
             return;
         }
-        
+
         // Check hotbar slots
         int windChargeSlot = getWindChargeSlot();
         if (windChargeSlot != -1) {
@@ -365,11 +365,11 @@ public class MaceCombo extends Module {
             isUsingWindCharge = true;
             awaitingWindChargeUse = false; // Use immediately
             useWindCharge(); // Use wind charge immediately
-            
+
             if (chatFeedback.get()) {
                 mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bSwitched to wind charge (slot " + windChargeSlot + ")"), false);
             }
-            
+
             attackCooldown = 30; // Longer cooldown for ground-based usage
         } else if (chatFeedback.get()) {
             mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cNo wind charge found in hotbar!"), false);
@@ -385,7 +385,7 @@ public class MaceCombo extends Module {
                     isUsingWindCharge = true;
                     awaitingWindChargeUse = false; // Use immediately
                     useWindCharge(); // Use wind charge immediately
-                    
+
                     if (chatFeedback.get()) {
                         mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bUsing wind charge (off-hand)"), false);
                     }
@@ -398,7 +398,7 @@ public class MaceCombo extends Module {
                         isUsingWindCharge = true;
                         awaitingWindChargeUse = false; // Use immediately
                         useWindCharge(); // Use wind charge immediately
-                        
+
                         if (chatFeedback.get()) {
                             mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bSwitched to wind charge (slot " + windChargeSlot + ")"), false);
                         }
@@ -429,14 +429,14 @@ public class MaceCombo extends Module {
 
     private void useWindCharge() {
         if (mc.player == null) return;
-        
+
         // Optimize pitch for maximum jump height
         if (optimizePitch.get()) {
             mc.player.setPitch(85.0f); // Slightly less than 90 for better trajectory
         } else {
             mc.player.setPitch(90.0f); // Straight down
         }
-        
+
         // Use wind charge - prioritize off-hand, then main hand
         if (mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
             mc.interactionManager.interactItem(mc.player, Hand.OFF_HAND);
@@ -455,10 +455,10 @@ public class MaceCombo extends Module {
                 mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cError: No wind charge in hand!"), false);
             }
         }
-        
+
         // Improved jump timing - wait a bit longer for better wind charge effect
         windChargeJumpTicks = instantWindCharge.get() ? 2 : windChargeDelay.get() + 2;
-        
+
         // Set delay before switching back to mace (5 ticks = 0.25 seconds)
         windChargeThrowDelay = 5;
         awaitingWindChargeUse = false;
@@ -466,16 +466,16 @@ public class MaceCombo extends Module {
 
     private void performWindChargeJump() {
         if (mc.player == null) return;
-        
+
         // Enhanced jump with better velocity control and timing
         Vec3d currentVelocity = mc.player.getVelocity();
         double jumpBoost = 0.6; // Increased jump strength for better height
         mc.player.setVelocity(currentVelocity.x, jumpBoost, currentVelocity.z);
-        
+
         if (chatFeedback.get()) {
             mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §bJump executed!"), false);
         }
-        
+
         // Note: Switching back to mace is now handled by windChargeThrowDelay timer
     }
 
@@ -498,7 +498,11 @@ public class MaceCombo extends Module {
     }
 
     private void rotateToTarget() {
+        //? if >=1.21.10 {
         Vec3d targetPos = target.getEntityPos();
+        //?} else
+        /*Vec3d targetPos = target.getPos();
+        */
         Rotations.rotate(Rotations.getYaw(targetPos), Rotations.getPitch(targetPos));
     }
 
@@ -535,17 +539,17 @@ public class MaceCombo extends Module {
     }
 
     private boolean hasAnyMaceInHand() {
-        return mc.player.getMainHandStack().getItem() == Items.MACE || 
+        return mc.player.getMainHandStack().getItem() == Items.MACE ||
                mc.player.getOffHandStack().getItem() == Items.MACE;
     }
 
     private boolean hasWindCharges() {
         // Check main hand and off hand first (faster)
-        if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE || 
+        if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE ||
             mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
             return true;
         }
-        
+
         // Check hotbar slots
         for (int i = 0; i < 9; i++) {
             if (mc.player.getInventory().getStack(i).getItem() == Items.WIND_CHARGE) {
@@ -565,4 +569,4 @@ public class MaceCombo extends Module {
         }
         return -1;
     }
-} 
+}

@@ -53,4 +53,4 @@ public class AddToCategoryScreen extends WindowScreen {
         MeteorClient.EVENT_BUS.unsubscribe(this);
         super.close();
     }
-} 
+}

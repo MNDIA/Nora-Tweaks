@@ -14,7 +14,7 @@ import net.minecraft.util.math.Vec3d;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
- 
+
 
 public class MobCheckerCommand extends Command {
 	private static final int DEFAULT_RANGE = 64;
@@ -59,7 +59,10 @@ public class MobCheckerCommand extends Command {
 		final int rangeSq = range * range;
 		final String filterLower = (mobTypeFilter == null || mobTypeFilter.isEmpty()) ? null : mobTypeFilter.toLowerCase();
 
+		//? if >=1.21.10 {
 		Vec3d center = mc.player.getEntityPos();
+		//?} else
+		/*Vec3d center = mc.player.getPos();*/
 		Box box = Box.of(center, range * 2.0, range * 2.0, range * 2.0);
 
 		mc.world.getOtherEntities(null, box, entity -> true).forEach(entity -> {
@@ -93,5 +96,3 @@ public class MobCheckerCommand extends Command {
 		}
 	}
 }
-
-

@@ -36,4 +36,4 @@ public class RenameCategoryScreen extends WindowScreen {
             }
         };
     }
-} 
+}

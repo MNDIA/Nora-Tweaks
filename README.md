@@ -17,8 +17,7 @@ Nora Tweaks is a custom addon for the [Meteor Client](https://meteorclient.com/)
 *   **Deepslate ESP:** Highlights deepslate-related blocks/entities for visibility.
 *   **Pearl Checker:** Shows owner nametags on ender pearls, sends throw/land chat notifications, and predicts landing.
 *   **Auto Trap Plus:** Enhanced trapping helper for faster, more reliable traps.
-*   **Ore Sim:** Seed-aware ore position simulator with optional Baritone goal syncing.
-*   **Safe Pathing (Experimental):** Baritone avoidance tuning and panic responses (run away, quick cover, go-to coords, pause, logout). Still under heavy development and usage is not recommended. 
+*   **Ore Sim:** Seed-aware ore position simulator with optional Baritone goal syncing. (Adapted from Meteor Rejects)
 
 ## Commands
 

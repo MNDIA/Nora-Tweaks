@@ -59,7 +59,7 @@ public class CategoryManagerScreen extends WindowScreen {
 
             WButton manageButton = categoriesTable.add(theme.button("Manage")).widget();
             manageButton.action = () -> MinecraftClient.getInstance().setScreen(new ManageCategoryModulesScreen(theme, category));
-            
+
             WButton renameButton = categoriesTable.add(theme.button("Rename")).widget();
             renameButton.action = () -> MinecraftClient.getInstance().setScreen(new RenameCategoryScreen(theme, category));
 
@@ -95,4 +95,4 @@ public class CategoryManagerScreen extends WindowScreen {
         MeteorClient.EVENT_BUS.unsubscribe(this);
         super.close();
     }
-} 
+}

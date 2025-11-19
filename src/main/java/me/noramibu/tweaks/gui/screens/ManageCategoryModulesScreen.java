@@ -107,7 +107,7 @@ public class ManageCategoryModulesScreen extends WindowScreen {
     private void removeAll() {
         CustomCategoryManager.unassignAll(getFilteredModules(), category);
     }
-    
+
     private String getSortModeName(me.noramibu.tweaks.category.SortOrder order) {
         if (order == null) return "A-Z";
         switch (order) {
@@ -132,7 +132,7 @@ public class ManageCategoryModulesScreen extends WindowScreen {
                 MinecraftClient.getInstance().setScreen(new ManageCategoryModulesScreen(theme, category));
                 return;
             }
-            
+
             buildTable();
         });
     }
@@ -142,4 +142,4 @@ public class ManageCategoryModulesScreen extends WindowScreen {
         MeteorClient.EVENT_BUS.unsubscribe(this);
         super.close();
     }
-} 
+}

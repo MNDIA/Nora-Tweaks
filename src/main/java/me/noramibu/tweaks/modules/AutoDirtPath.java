@@ -27,7 +27,8 @@ public class AutoDirtPath extends Module {
         .description("The radius to search for blocks.")
         .defaultValue(3.5)
         .min(1)
-        .sliderMax(6)
+        .max(10)
+        .sliderMax(5)
         .build()
     );
 
@@ -131,10 +132,24 @@ public class AutoDirtPath extends Module {
 
         if (targetBlocks.isEmpty()) return;
 
+        final double rangeSq = range.get() * range.get();
         BlockPos.stream(mc.player.getBoundingBox().expand(range.get()))
             .map(BlockPos::toImmutable)
             .filter(bp -> targetBlocks.contains(mc.world.getBlockState(bp).getBlock()))
-            .sorted(Comparator.comparing(bp -> mc.player.getEntityPos().distanceTo(Vec3d.ofCenter(bp))))
+            .filter(bp -> {
+                //? if >=1.21.10 {
+                return mc.player.getEntityPos().squaredDistanceTo(Vec3d.ofCenter(bp)) <= rangeSq;
+                //?} else
+                /*return mc.player.getPos().squaredDistanceTo(Vec3d.ofCenter(bp)) <= rangeSq;
+                */
+            })
+            .sorted(Comparator.comparing(bp -> {
+                //? if >=1.21.10 {
+                return mc.player.getEntityPos().distanceTo(Vec3d.ofCenter(bp));
+                //?} else
+                /*return mc.player.getPos().distanceTo(Vec3d.ofCenter(bp));
+                */
+            }))
             .limit(blocksPerTick.get())
             .forEach(this::turnToPath);
     }
@@ -154,3 +169,18 @@ public class AutoDirtPath extends Module {
         }
     }
 } 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -9,15 +9,12 @@ package me.noramibu.tweaks.utils;
 import cubitect.Cubiomes;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.systems.System;
-import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.utils.Utils;
-import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.HoverEvent;
 import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
@@ -112,19 +109,6 @@ public class Seeds extends System<Seeds> {
         }
     }
 
-    private static void warnInvalidVersion(String seed, String version) {
-        MutableText message = Text.literal(String.format("Couldn't resolve minecraft version \"%s\". Using %s instead. If you wish to change the version run: ", version, resolveCubiomesVersion().name()));
-        String suggested = String.format("%sseed %s ", Config.get().prefix, seed);
-        MutableText command = Text.literal(suggested + "<version>")
-            .setStyle(Style.EMPTY
-                .withUnderline(true)
-                .withClickEvent(new ClickEvent.SuggestCommand(suggested))
-                .withHoverEvent(new HoverEvent.ShowText(Text.literal("run command"))));
-        message.append(command);
-        message.setStyle(message.getStyle().withColor(Formatting.YELLOW));
-        ChatUtils.sendMsg("Seed", message);
-    }
-
     public static final class Seed {
         public final long seed;
         public final Cubiomes.MCVersion version;
@@ -196,4 +180,3 @@ public class Seeds extends System<Seeds> {
         return parseCubiomesVersion(input);
     }
 }
-

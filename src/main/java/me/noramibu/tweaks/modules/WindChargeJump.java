@@ -84,12 +84,12 @@ public class WindChargeJump extends Module {
 
         if (event.packet instanceof PlayerInteractItemC2SPacket) {
             // Check if player is using a wind charge
-            if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE || 
+            if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE ||
                 mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
-                
+
                 if (shouldTriggerJump()) {
                     jumpTicksRemaining = jumpDelay.get();
-                    
+
                     if (chatFeedback.get()) {
                         mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Wind Charge Jump triggered!"), false);
                     }
@@ -104,7 +104,7 @@ public class WindChargeJump extends Module {
 
         if (jumpTicksRemaining > 0) {
             jumpTicksRemaining--;
-            
+
             if (jumpTicksRemaining == 0) {
                 performJump();
             }
@@ -137,4 +137,4 @@ public class WindChargeJump extends Module {
         Vec3d velocity = mc.player.getVelocity();
         mc.player.setVelocity(velocity.x, jumpForce.get(), velocity.z);
     }
-} 
+}

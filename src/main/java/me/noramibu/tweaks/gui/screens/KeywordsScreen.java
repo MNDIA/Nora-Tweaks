@@ -51,4 +51,4 @@ public class KeywordsScreen extends WindowScreen {
             table.row();
         }
     }
-} 
+}

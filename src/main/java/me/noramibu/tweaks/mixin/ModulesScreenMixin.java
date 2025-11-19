@@ -117,4 +117,4 @@ public abstract class ModulesScreenMixin extends WContainer {
     private void onCategoriesChanged(CustomCategoriesChangedEvent event) {
         MinecraftClient.getInstance().execute(this::refreshCustomCategories);
     }
-} 
+}

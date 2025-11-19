@@ -8,7 +8,6 @@ package me.noramibu.tweaks.utils;
 
 import cubitect.Cubiomes.Pos;
 import cubitect.Cubiomes;
-import me.noramibu.tweaks.utils.Seeds;
 import me.noramibu.tweaks.utils.Seeds.Seed;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import net.minecraft.component.DataComponentTypes;
@@ -19,7 +18,6 @@ import net.minecraft.entity.passive.IronGolemEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.entity.vehicle.ChestMinecartEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import org.apache.logging.log4j.LogManager;
@@ -110,7 +108,6 @@ public class WorldGenUtils {
             LOG.error("Failed to locate feature via entities", ex);
         }
 
-        // Block-based fallback removed
         return null;
     }
 
@@ -118,8 +115,6 @@ public class WorldGenUtils {
         if (!isValidMap(feature, stack)) return null;
         return getMapMarker(stack);
     }
-
-    // Block-based locator removed
 
     private static BlockPos locateFeatureEntities(Feature feature) {
         List<Class<? extends Entity>> entities = FEATURE_ENTITIES.get(feature);
@@ -189,7 +184,4 @@ public class WorldGenUtils {
         MapDecorationsComponent.Decoration decoration = component.decorations().get(0);
         return new BlockPos((int) decoration.x(), 0, (int) decoration.z());
     }
-
-    // sq(int) unused after SeedFinding removal
 }
-

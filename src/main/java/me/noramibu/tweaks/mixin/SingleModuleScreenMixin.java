@@ -30,4 +30,4 @@ public abstract class SingleModuleScreenMixin extends WidgetScreen {
             MinecraftClient.getInstance().setScreen(new AddToCategoryScreen(theme, module));
         };
     }
-} 
+}

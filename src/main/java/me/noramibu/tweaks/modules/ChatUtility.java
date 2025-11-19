@@ -23,9 +23,7 @@ import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 import javax.imageio.ImageIO;
-import meteordevelopment.meteorclient.gui.WindowScreen;
 
 public class ChatUtility extends Module {
     private final SettingGroup sgChatNotify = settings.createGroup("Chat Notify");
@@ -87,7 +85,7 @@ public class ChatUtility extends Module {
     @Override
     public WWidget getWidget(GuiTheme theme) {
         WTable table = theme.table();
-        
+
         WButton button = table.add(theme.button("Keywords to notify")).expandX().widget();
         button.action = () -> mc.setScreen(new KeywordsScreen(theme));
         table.row();
@@ -227,4 +225,4 @@ public class ChatUtility extends Module {
             timer++;
         }
     }
-} 
+}

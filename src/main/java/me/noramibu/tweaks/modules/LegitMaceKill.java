@@ -1,7 +1,7 @@
 package me.noramibu.tweaks.modules;
 
 /**
- * Original code written by @etianl https://github.com/etianl/Trouser-Streak/blob/main/src/main/java/pwn/noobs/trouserstreak/modules/MaceKill.java 
+ * Original code written by @etianl https://github.com/etianl/Trouser-Streak/blob/main/src/main/java/pwn/noobs/trouserstreak/modules/MaceKill.java
  */
 
 import me.noramibu.tweaks.NoraTweaks;
@@ -22,7 +22,6 @@ import net.minecraft.util.math.Vec3d;
 
 public class LegitMaceKill extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
-    private final SettingGroup sgInfo = settings.createGroup("Note: Disable \"Smash Attack\" in the Criticals module to make this work properly.");
     private final Setting<Boolean> preventDeath = sgGeneral.add(new BoolSetting.Builder()
             .name("Prevent Fall damage")
             .description("Attempts to prevent fall damage even on packet hiccups.")
@@ -85,30 +84,34 @@ public class LegitMaceKill extends Module {
         if (!(event.packet instanceof IPlayerInteractEntityC2SPacket packet)) return;
         // Check if this is an attack packet by checking the type
         if (packet.meteor$getEntity() == null) return;
-        
+
         // Only proceed if the target is a LivingEntity
         if (!(packet.meteor$getEntity() instanceof LivingEntity targetEntity)) return;
-        
+
         if (packetDisable.get() && (targetEntity.isBlocking() || targetEntity.isInvulnerable() || targetEntity.isInCreativeMode()))
             return;
 
+        //? if >=1.21.10 {
         previouspos = mc.player.getEntityPos();
-        
+        //?} else
+        /*previouspos = mc.player.getPos();
+        */
+
         // Don't activate if fall distance is below minimum height threshold
         if (mc.player.fallDistance < minFallHeight.get()) return;
-        
+
         // Check damage chance
         if (Math.random() * 100 > damageChance.get()) return;
-        
+
         int blocks = getMaxHeightAbovePlayer();
-        
+
         // Send chat feedback if enabled
         if (chatFeedback.get()) {
             double originalFall = mc.player.fallDistance;
             double amplifiedFall = originalFall * fallMultiplier.get();
             mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Mace Kill triggered! Fall: " + String.format("%.1f", originalFall) + " → " + String.format("%.1f", amplifiedFall) + " blocks"), false);
         }
-        
+
         int packetsRequired = (int) Math.ceil(Math.abs(blocks / 10.0));
         if (packetsRequired > 20) packetsRequired = 1;
 
@@ -174,18 +177,18 @@ public class LegitMaceKill extends Module {
     }
     private int getMaxHeightAbovePlayer() {
         BlockPos playerPos = mc.player.getBlockPos();
-        
+
         // Use multiplier mode based on current fall distance
         double currentFallDistance = mc.player.fallDistance;
-        
+
         // Only activate if falling from at least the minimum height
         if (currentFallDistance < minFallHeight.get()) {
             return 0; // Don't activate if not falling from minimum height
         }
-        
+
         int multipliedHeight = (int) (currentFallDistance * fallMultiplier.get());
         if (capAt170Blocks.get()) multipliedHeight = Math.min(multipliedHeight, 170);
-        
+
         // Check if we can safely teleport to this height
         int targetHeight = playerPos.getY() + multipliedHeight;
         for (int i = targetHeight; i > playerPos.getY(); i--) {
@@ -193,7 +196,7 @@ public class LegitMaceKill extends Module {
             BlockPos up2 = up1.up(1);
             if (isSafeBlock(up1) && isSafeBlock(up2)) return i - playerPos.getY();
         }
-        
+
         // If no safe position found, return 0 (don't activate)
         return 0;
     }

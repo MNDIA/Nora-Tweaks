@@ -186,4 +186,4 @@ public class CustomCategoryManager {
             this.assignments = assignments;
         }
     }
-} 
+}

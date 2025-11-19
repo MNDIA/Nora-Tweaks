@@ -15,4 +15,4 @@ public class CategoryManagerModule extends Module {
         mc.setScreen(new CategoryManagerScreen(GuiThemes.get()));
         toggle();
     }
-} 
+}

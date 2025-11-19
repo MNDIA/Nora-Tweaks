@@ -10,8 +10,10 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.input.WIntEdit;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.gui.widgets.input.WDropdown;
+//? if >=1.21.10 {
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.input.KeyInput;
+//?}
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
@@ -148,6 +150,7 @@ public class EditHotkeyScreen extends WindowScreen {
         module.saveHotkeys();
     }
 
+    //? if >=1.21.10 {
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
         for (WKeybind w : keybindWidgets) {
@@ -163,4 +166,21 @@ public class EditHotkeyScreen extends WindowScreen {
         }
         return super.keyPressed(input);
     }
-} 
+    //?} else
+    /*@Override
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        for (WKeybind w : keybindWidgets) {
+            if (w.onAction(false, button, 0)) return true;
+        }
+        return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        for (WKeybind w : keybindWidgets) {
+            if (w.onAction(true, keyCode, modifiers)) return true;
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+    */
+}

@@ -139,7 +139,7 @@ public class AutoFarm extends Module {
 
     public AutoFarm() {
         super(NoraTweaks.CATEGORY, "auto-farm", "All-in-one farm utility. (yoinked from Meteor Rejects)");
-    } 
+    }
 
     @Override
     public void onDeactivate() {
@@ -338,4 +338,3 @@ public class AutoFarm extends Module {
                 item == Items.TORCHFLOWER_SEEDS;
     }
 }
-

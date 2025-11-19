@@ -15,4 +15,3 @@ public interface RarityFilterPlacementModifierAccessor {
     @Accessor
     int getChance();
 }
-

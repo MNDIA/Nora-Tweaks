@@ -16,4 +16,3 @@ public interface HeightRangePlacementModifierAccessor {
     @Accessor
     HeightProvider getHeight();
 }
-
