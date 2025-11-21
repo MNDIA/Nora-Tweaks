@@ -6,6 +6,17 @@
  */
 package me.noramibu.tweaks.modules;
 
+import baritone.api.BaritoneAPI;
+import baritone.api.IBaritone;
+import baritone.api.pathing.goals.Goal;
+import baritone.api.pathing.goals.GoalBlock;
+import baritone.api.pathing.goals.GoalComposite;
+import baritone.api.process.ICustomGoalProcess;
+import baritone.api.process.IMineProcess;
+import baritone.api.utils.BlockOptionalMeta;
+import baritone.api.utils.BlockOptionalMetaLookup;
+import net.minecraft.block.Block;
+import net.minecraft.block.Blocks;
 import me.noramibu.tweaks.NoraTweaks;
 import me.noramibu.tweaks.utils.Ore;
 import me.noramibu.tweaks.utils.Seeds;
@@ -19,6 +30,7 @@ import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
+import meteordevelopment.meteorclient.pathing.BaritoneUtils;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.Utils;
@@ -26,7 +38,6 @@ import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
@@ -44,12 +55,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class OreSim extends Module {
+public class OreSimBaritone extends Module {
     private final Map<Long, Map<Ore, Set<Vec3d>>> chunkRenderers = new ConcurrentHashMap<>();
     private Seed worldSeed;
     private Map<RegistryKey<Biome>, List<Ore>> oreConfig;
     private String lastWorldName;
     private RegistryKey<World> lastWorldKey;
+    private boolean ourMiningActive = false;
 
     public enum AirCheck {
         ON_LOAD,
@@ -73,31 +85,68 @@ public class OreSim extends Module {
         .defaultValue(AirCheck.RECHECK)
         .build());
 
-    public OreSim() {
-        super(NoraTweaks.CATEGORY, "ore-sim", "Simulates vanilla ore generation using the world seed.");
+    public OreSimBaritone() {
+        super(NoraTweaks.CATEGORY, "ore-sim-baritone", "Simulates vanilla ore generation using the world seed. (Baritone version)");
         SettingGroup sgOres = settings.createGroup("Ores");
         Ore.oreSettings.forEach(sgOres::add);
     }
     
     @Override
     public WWidget getWidget(GuiTheme theme) {
+        if (!BaritoneUtils.IS_AVAILABLE) return null;
+        
         WTable table = theme.table();
         
         WButton startButton = table.add(theme.button("Start Baritone Goal")).expandX().widget();
-        startButton.action = () -> {
-            if (mc.player != null) {
-                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cBaritone not loaded."), false);
-            }
-        };
+        startButton.action = () -> startBaritoneGoal();
         
         WButton stopButton = table.add(theme.button("Stop Baritone Goal")).expandX().widget();
-        stopButton.action = () -> {
-            if (mc.player != null) {
-                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cBaritone not loaded."), false);
-            }
-        };
+        stopButton.action = () -> stopBaritoneGoal();
         
         return table;
+    }
+    
+    private void startBaritoneGoal() {
+        if (!isActive()) {
+            error("OreSim module is not active");
+            return;
+        }
+        
+        if (!BaritoneUtils.IS_AVAILABLE) {
+            error("Baritone is not available");
+            return;
+        }
+        
+        IBaritone baritone = BaritoneAPI.getProvider().getPrimaryBaritone();
+        if (baritone == null) {
+            error("Baritone instance not found");
+            return;
+        }
+        
+        IMineProcess mineProcess = baritone.getMineProcess();
+        if (mineProcess == null) {
+            error("Mine process not found");
+            return;
+        }
+        
+        if (mineProcess.isActive()) {
+            mineProcess.cancel();
+        }
+        
+        startCustomGoal(baritone);
+        ourMiningActive = true;
+    }
+    
+    private void stopBaritoneGoal() {
+        IBaritone baritone = BaritoneAPI.getProvider().getPrimaryBaritone();
+        if (baritone == null) return;
+        
+        ICustomGoalProcess customGoalProcess = baritone.getCustomGoalProcess();
+        if (customGoalProcess != null) {
+            customGoalProcess.setGoal(null);
+        }
+        
+        ourMiningActive = false;
     }
 
     @EventHandler
@@ -150,7 +199,230 @@ public class OreSim extends Module {
         if (mc.player == null || mc.world == null || oreConfig == null) return;
 
         detectWorldChange();
+
+        if (ourMiningActive && BaritoneUtils.IS_AVAILABLE) {
+            IBaritone baritone = BaritoneAPI.getProvider().getPrimaryBaritone();
+            if (baritone == null) {
+                ourMiningActive = false;
+                return;
+            }
+            
+            IMineProcess mineProcess = baritone.getMineProcess();
+            if (mineProcess == null) {
+                ourMiningActive = false;
+                return;
+            }
+            
+            ICustomGoalProcess customGoalProcess = baritone.getCustomGoalProcess();
+            boolean isCustomGoalActive = customGoalProcess != null && customGoalProcess.isActive();
+            
+            if (!isCustomGoalActive) {
+                ourMiningActive = false;
+                return;
+            }
+            
+            if (mineProcess.isActive()) {
+                mineProcess.cancel();
+            }
+            
+            updateCustomGoal(baritone);
+        }
     }
+    
+    private void startCustomGoal(IBaritone baritone) {
+        List<BlockPos> positions = collectOrePositions();
+        
+        if (positions.isEmpty()) {
+            error("No ore positions found. Make sure you have a seed set and ore types enabled.");
+            return;
+        }
+        
+        positions.sort((pos1, pos2) -> {
+            //? if >=1.21.10 {
+            Vec3d playerPos = mc.player.getEntityPos();
+            //?} else
+            /*Vec3d playerPos = mc.player.getPos();
+            */
+            double dist1 = playerPos.squaredDistanceTo(Vec3d.ofCenter(pos1));
+            double dist2 = playerPos.squaredDistanceTo(Vec3d.ofCenter(pos2));
+            return Double.compare(dist1, dist2);
+        });
+        
+        IMineProcess mineProcess = baritone.getMineProcess();
+        List<BlockOptionalMeta> activeOreBlocks = getActiveOreBlocks();
+        if (!activeOreBlocks.isEmpty() && mineProcess != null) {
+            BlockOptionalMetaLookup lookup = new BlockOptionalMetaLookup(activeOreBlocks.toArray(new BlockOptionalMeta[0]));
+            mineProcess.mine(lookup);
+        }
+        
+        ICustomGoalProcess customGoalProcess = baritone.getCustomGoalProcess();
+        if (customGoalProcess != null) {
+            Goal[] goals = positions.stream()
+                .map(GoalBlock::new)
+                .toArray(Goal[]::new);
+            
+            if (goals.length > 0) {
+                GoalComposite compositeGoal = new GoalComposite(goals);
+                customGoalProcess.setGoalAndPath(compositeGoal);
+            }
+        }
+    }
+    
+    private void updateCustomGoal(IBaritone baritone) {
+        List<BlockPos> positions = collectOrePositions();
+        
+        if (positions.isEmpty()) return;
+        
+        //? if >=1.21.10 {
+        Vec3d playerPos = mc.player.getEntityPos();
+        //?} else
+        /*Vec3d playerPos = mc.player.getPos();
+        */
+        positions.sort((pos1, pos2) -> {
+            double dist1 = playerPos.squaredDistanceTo(Vec3d.ofCenter(pos1));
+            double dist2 = playerPos.squaredDistanceTo(Vec3d.ofCenter(pos2));
+            return Double.compare(dist1, dist2);
+        });
+        
+        ICustomGoalProcess customGoalProcess = baritone.getCustomGoalProcess();
+        if (customGoalProcess != null) {
+            Goal[] goals = positions.stream()
+                .map(GoalBlock::new)
+                .toArray(Goal[]::new);
+            
+            if (goals.length > 0) {
+                GoalComposite compositeGoal = new GoalComposite(goals);
+                
+                boolean nearMinedPosition = false;
+                for (BlockPos goalPos : positions) {
+                    double distance = playerPos.distanceTo(Vec3d.ofCenter(goalPos));
+                    if (distance < 2.0 && mc.world.getBlockState(goalPos).isAir()) {
+                        nearMinedPosition = true;
+                        break;
+                    }
+                }
+                
+                customGoalProcess.setGoal(compositeGoal);
+                
+                if (!customGoalProcess.isActive() || nearMinedPosition) {
+                    customGoalProcess.path();
+                }
+            }
+        }
+    }
+    
+    private List<BlockPos> collectOrePositions() {
+        List<BlockPos> positions = new ArrayList<>();
+        ChunkPos chunkPos = mc.player.getChunkPos();
+        int rangeVal = 4;
+        for (int range = 0; range <= rangeVal; range++) {
+            for (int x = -range + chunkPos.x; x <= range + chunkPos.x; x++) {
+                positions.addAll(getOrePositionsFromChunk(x, chunkPos.z + range - rangeVal));
+            }
+            for (int x = -range + 1 + chunkPos.x; x < range + chunkPos.x; x++) {
+                positions.addAll(getOrePositionsFromChunk(x, chunkPos.z - range + rangeVal + 1));
+            }
+        }
+        
+        List<BlockOptionalMeta> activeOreBlocks = getActiveOreBlocks();
+        Set<Block> targetBlocks = new HashSet<>();
+        for (BlockOptionalMeta bom : activeOreBlocks) {
+            targetBlocks.add(bom.getBlock());
+        }
+        
+        positions.removeIf(pos -> {
+            if (mc.world == null) return false;
+            net.minecraft.block.BlockState state = mc.world.getBlockState(pos);
+            if (state.isAir()) return true;
+            net.minecraft.block.Block block = state.getBlock();
+            return !targetBlocks.contains(block);
+        });
+        
+        return positions;
+    }
+    
+    private List<BlockPos> getOrePositionsFromChunk(int chunkX, int chunkZ) {
+        List<BlockPos> positions = new ArrayList<>();
+        if (oreConfig == null) return positions;
+        
+        long chunkKey = ChunkPos.toLong(chunkX, chunkZ);
+        Map<Ore, Set<Vec3d>> chunkData = chunkRenderers.get(chunkKey);
+        if (chunkData == null) return positions;
+        
+        for (Map.Entry<Ore, Set<Vec3d>> entry : chunkData.entrySet()) {
+            Ore ore = entry.getKey();
+            if (!ore.active.get()) continue;
+            
+            for (Vec3d pos : entry.getValue()) {
+                BlockPos blockPos = new BlockPos((int) pos.x, (int) pos.y, (int) pos.z);
+                positions.add(blockPos);
+            }
+        }
+        
+        return positions;
+    }
+    
+    private List<BlockOptionalMeta> getActiveOreBlocks() {
+        List<BlockOptionalMeta> blocks = new ArrayList<>();
+        if (oreConfig == null) return blocks;
+        
+        Set<Block> activeOreBlocks = new HashSet<>();
+        
+        Setting<Boolean> coalSetting = Ore.oreSettings.get(0);
+        Setting<Boolean> ironSetting = Ore.oreSettings.get(1);
+        Setting<Boolean> goldSetting = Ore.oreSettings.get(2);
+        Setting<Boolean> redstoneSetting = Ore.oreSettings.get(3);
+        Setting<Boolean> diamondSetting = Ore.oreSettings.get(4);
+        Setting<Boolean> lapisSetting = Ore.oreSettings.get(5);
+        Setting<Boolean> copperSetting = Ore.oreSettings.get(6);
+        Setting<Boolean> emeraldSetting = Ore.oreSettings.get(7);
+        Setting<Boolean> quartzSetting = Ore.oreSettings.get(8);
+        Setting<Boolean> debrisSetting = Ore.oreSettings.get(9);
+        
+        for (List<Ore> ores : oreConfig.values()) {
+            for (Ore ore : ores) {
+                if (ore.active.get()) {
+                    if (ore.active == coalSetting) {
+                        activeOreBlocks.add(Blocks.COAL_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_COAL_ORE);
+                    } else if (ore.active == ironSetting) {
+                        activeOreBlocks.add(Blocks.IRON_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_IRON_ORE);
+                    } else if (ore.active == goldSetting) {
+                        activeOreBlocks.add(Blocks.GOLD_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_GOLD_ORE);
+                        activeOreBlocks.add(Blocks.NETHER_GOLD_ORE);
+                    } else if (ore.active == diamondSetting) {
+                        activeOreBlocks.add(Blocks.DIAMOND_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_DIAMOND_ORE);
+                    } else if (ore.active == redstoneSetting) {
+                        activeOreBlocks.add(Blocks.REDSTONE_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_REDSTONE_ORE);
+                    } else if (ore.active == lapisSetting) {
+                        activeOreBlocks.add(Blocks.LAPIS_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_LAPIS_ORE);
+                    } else if (ore.active == copperSetting) {
+                        activeOreBlocks.add(Blocks.COPPER_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_COPPER_ORE);
+                    } else if (ore.active == emeraldSetting) {
+                        activeOreBlocks.add(Blocks.EMERALD_ORE);
+                        activeOreBlocks.add(Blocks.DEEPSLATE_EMERALD_ORE);
+                    } else if (ore.active == quartzSetting) {
+                        activeOreBlocks.add(Blocks.NETHER_QUARTZ_ORE);
+                    } else if (ore.active == debrisSetting) {
+                        activeOreBlocks.add(Blocks.ANCIENT_DEBRIS);
+                    }
+                }
+            }
+        }
+        
+        for (Block block : activeOreBlocks) {
+            blocks.add(new BlockOptionalMeta(block));
+        }
+        
+        return blocks;
+    }
+    
 
     @Override
     public void onActivate() {
@@ -169,6 +441,7 @@ public class OreSim extends Module {
         oreConfig = null;
         lastWorldName = null;
         lastWorldKey = null;
+        ourMiningActive = false;
     }
 
     @EventHandler
@@ -416,3 +689,4 @@ public class OreSim extends Module {
         return Math.round((random.nextFloat() - random.nextFloat()) * size);
     }
 }
+
