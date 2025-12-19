@@ -2,7 +2,7 @@ package me.noramibu.tweaks;
 
 import me.noramibu.tweaks.category.CustomCategoryManager;
 import me.noramibu.tweaks.modules.AutoDirtPath;
-import me.noramibu.tweaks.modules.AutoFarm;
+import me.noramibu.tweaks.modules.AutoFarming;
 import me.noramibu.tweaks.modules.AutoFarmLand;
 import me.noramibu.tweaks.modules.AutoLogStrip;
 import me.noramibu.tweaks.modules.CategoryManagerModule;
@@ -16,6 +16,9 @@ import me.noramibu.tweaks.modules.DeepslateESP;
 import me.noramibu.tweaks.modules.OreSim;
 import me.noramibu.tweaks.modules.OreSimBaritone;
 import me.noramibu.tweaks.modules.PearlChecker;
+import me.noramibu.tweaks.modules.BetterLocator;
+import me.noramibu.tweaks.modules.AttributeSwapping;
+
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
 import me.noramibu.tweaks.utils.ConfigModifier;
@@ -43,7 +46,7 @@ public class NoraTweaks extends MeteorAddon {
 
         // Modules
         Modules.get().add(new AutoDirtPath());
-        Modules.get().add(new AutoFarm());
+        Modules.get().add(new AutoFarming());
         Modules.get().add(new AutoFarmLand());
         Modules.get().add(new AutoLogStrip());
         Modules.get().add(new CategoryManagerModule());
@@ -55,6 +58,19 @@ public class NoraTweaks extends MeteorAddon {
         Modules.get().add(new AutoTrapPlus());
         Modules.get().add(new DeepslateESP());
         Modules.get().add(new PearlChecker());
+
+        // Conditionally registering those modules that may exist in Meteor Client because PRs
+        if (!isMeteorModulePresent("attribute-swap")) {
+            Modules.get().add(new AttributeSwapping());
+        } else {
+            LOG.info("Meteor Client already has attribute-swap module, skipping AttributeSwapping.");
+        }
+
+        if (!isMeteorModulePresent("better-locator")) {
+            Modules.get().add(new BetterLocator());
+        } else {
+            LOG.info("Meteor Client already has better-locator module, skipping BetterLocator.");
+        }
 
         // Conditionally register OreSimBaritone if Baritone is available
         if (isBaritonePresent()) {
@@ -72,7 +88,7 @@ public class NoraTweaks extends MeteorAddon {
         Seeds.get();
 
         Systems.add(new StartupDataCollector());
-        
+
         ConfigModifier.get();
     }
 
@@ -93,5 +109,10 @@ public class NoraTweaks extends MeteorAddon {
         } catch (ClassNotFoundException e) {
             return false;
         }
+    }
+
+    public static boolean isMeteorModulePresent(String moduleName) {
+        return Modules.get().getAll().stream()
+                .anyMatch(module -> module.name.equalsIgnoreCase(moduleName));
     }
 }
