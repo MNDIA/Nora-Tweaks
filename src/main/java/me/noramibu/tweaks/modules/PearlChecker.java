@@ -23,7 +23,12 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.thrown.EnderPearlEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import org.joml.Vector3d;
-import meteordevelopment.meteorclient.utils.entity.ProjectileEntitySimulator;
+//? if >=1.21.11 {
+import meteordevelopment.meteorclient.utils.entity.simulator.ProjectileEntitySimulator;
+import meteordevelopment.meteorclient.utils.entity.simulator.SimulationStep;
+//?} else
+/*import meteordevelopment.meteorclient.utils.entity.ProjectileEntitySimulator;
+*/
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -273,13 +278,27 @@ public class PearlChecker extends Module {
         for (Entity e : mc.world.getEntities()) {
             if (!(e instanceof EnderPearlEntity pearl)) continue;
 
-            if (!simulator.set(pearl, false)) continue;
+            //? if >=1.21.11 {
+            if (!simulator.set(pearl)) continue;
+
+            HitResult hit = null;
+            for (int i = 0; i < 400; i++) {
+                SimulationStep step = simulator.tick();
+                if (step == SimulationStep.MISS) continue;
+                if (step.shouldStop && step.hitResults != null && step.hitResults.length > 0) {
+                    hit = step.hitResults[0];
+                    break;
+                }
+            }
+            //?} else
+            /*if (!simulator.set(pearl, false)) continue;
 
             HitResult hit = null;
             for (int i = 0; i < 400; i++) {
                 hit = simulator.tick();
                 if (hit != null) break;
             }
+            */
 
             if (hit == null) continue;
 
