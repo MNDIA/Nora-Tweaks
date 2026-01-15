@@ -88,7 +88,7 @@ public class OreSim extends Module {
     @Override
     public WWidget getWidget(GuiTheme theme) {
         meteordevelopment.meteorclient.gui.widgets.containers.WTable table = theme.table();
-        table.add(theme.label("Supports: baritone-api, baritone-meteor, baritone-unoptimized")).expandX();
+        table.add(theme.label("Supports: baritone-api, baritone-meteor, baritone-unoptimized. Recommended baritone-meteor for best compatibility")).expandX();
         table.row();
         table.add(theme.label("Doesn't support: baritone-standalone")).expandX();
         return table;
@@ -188,7 +188,7 @@ public class OreSim extends Module {
     @Override
     public void onActivate() {
         if (Seeds.get().getSeed() == null) {
-            error("No seed found. Run .seed <seed> to set one.");
+            error("No seed found. Run .seed-world <seed> to set one.");
             toggle();
             return;
         }

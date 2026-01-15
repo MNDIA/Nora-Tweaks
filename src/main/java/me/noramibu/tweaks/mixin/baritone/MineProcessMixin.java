@@ -23,11 +23,8 @@ import java.util.List;
  * Targets baritone.process.MineProcess for:
  * - baritone-unoptimized: field 'knownOreLocations', method 'rescan'
  * - baritone-meteor: field 'a', method 'a(List, CalculationContext)'
- * 
- * For baritone-api (baritone.em), see MineProcessMixinApi.
- * 
- * Priority 2000 ensures this mixin takes precedence over Meteor Rejects' MineProcessMixin (default 1000).
- */
+ * For baritone-api see MineProcessMixinApi.
+**/
 @Mixin(targets = "baritone.process.MineProcess", remap = false, priority = 2000)
 public class MineProcessMixin {
 

@@ -20,21 +20,13 @@ import java.util.List;
 
 
 /**
- * Mixin for baritone-api's MineProcess (baritone.em).
- * 
- * NOTE: In baritone-standalone, baritone.em is SettingsUtil (different class).
- * This mixin uses @Pseudo so it won't crash if the method doesn't exist.
- * The @Inject has require=0 so it will be skipped if the method signature doesn't match.
- * 
- * Uses @Pseudo to gracefully skip if baritone.em doesn't exist or doesn't have the expected method.
- * 
- * Priority 2000 ensures this mixin takes precedence over any Meteor Rejects mixins.
- */
+ * Mixin for baritone-api's MineProcess.
+ * - baritone-api 1.21.11: baritone.em
+ * - baritone-api 1.21.8/1.21.7: baritone.ek
+**/
 @Pseudo
-@Mixin(targets = "baritone.em", remap = false, priority = 2000)
+@Mixin(targets = {"baritone.em", "baritone.ek"}, remap = false, priority = 2000)
 public class MineProcessMixinApi {
-
-    // Cache the field reference for performance
     @Unique
     private static Field cachedField;
 
@@ -47,14 +39,6 @@ public class MineProcessMixinApi {
     @Unique
     private static boolean isMineProcessChecked = false;
 
-    /**
-     * Intercepts the rescan method (obfuscated as 'a') to replace ore locations.
-     * Method signature: a(List<BlockPos>, ca)V where ca is obfuscated CalculationContext
-     * 
-     * This method only exists in baritone-api's em class (MineProcess).
-     * In baritone-standalone, em is SettingsUtil which doesn't have this method.
-     * The require=0 ensures this mixin is skipped if the method doesn't exist.
-     */
     @Inject(
         method = "a(Ljava/util/List;Lbaritone/ca;)V",
         at = @At("HEAD"),
@@ -63,7 +47,6 @@ public class MineProcessMixinApi {
         require = 0
     )
     private void onRescan(CallbackInfo ci) {
-        // Runtime check to ensure this is actually a MineProcess class
         if (!checkIsMineProcess()) {
             return;
         }
@@ -73,15 +56,11 @@ public class MineProcessMixinApi {
             return;
         }
 
-        // Set the knownOreLocations field using reflection
         if (setKnownOreLocations(this, oreSim.oreGoals)) {
             ci.cancel();
         }
     }
 
-    /**
-     * Checks if this class is actually a MineProcess by looking for IMineProcess interface.
-     */
     @Unique
     private boolean checkIsMineProcess() {
         if (isMineProcessChecked) {
@@ -89,7 +68,6 @@ public class MineProcessMixinApi {
         }
         isMineProcessChecked = true;
 
-        // Check if any interface has "MineProcess" in its name
         for (Class<?> iface : this.getClass().getInterfaces()) {
             if (iface.getName().contains("MineProcess") || iface.getSimpleName().equals("cw")) {
                 isMineProcess = true;
@@ -97,7 +75,6 @@ public class MineProcessMixinApi {
             }
         }
 
-        // Also check if parent class implements IMineProcess
         Class<?> parent = this.getClass().getSuperclass();
         while (parent != null && parent != Object.class) {
             for (Class<?> iface : parent.getInterfaces()) {
@@ -112,9 +89,6 @@ public class MineProcessMixinApi {
         return false;
     }
 
-    /**
-     * Sets the knownOreLocations field using reflection.
-     */
     @Unique
     private static boolean setKnownOreLocations(Object instance, List<BlockPos> locations) {
         try {
