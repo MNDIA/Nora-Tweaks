@@ -1,6 +1,7 @@
 # Nora Tweaks
 
-Nora Tweaks is a custom addon for the [Meteor Client](https://meteorclient.com/) that introduces quality-of-life features. I would like to get
+Nora Tweaks is a custom addon for the [Meteor Client](https://meteorclient.com/) that introduces quality-of-life features. If you have any recommendations, feel free to open a feature request.
+
 ## Features
 
 *   **Custom Category Manager:** Create, manage, and sort your own custom module categories, which appear seamlessly in the module list.
@@ -25,5 +26,5 @@ Nora Tweaks is a custom addon for the [Meteor Client](https://meteorclient.com/)
     *   `.mobchecker <range>` → e.g., `.mobchecker 96`
     *   `.mobchecker <range> <filter>` → e.g., `.mobchecker 96 zombie`
 *   **.calculator** — Evaluate math expressions or quick damage/survival formulas.
-*   **.seed** — Command to store world seed. (Adapted from Meteor Rejects)
+*   **.seed-world** — Command to store world seed. (Adapted from Meteor Rejects)
 *   **.seed-locate** — Locate structures via the stored seed using Cubiomes; prints coordinates and distance. (Adapted from Meteor Rejects)

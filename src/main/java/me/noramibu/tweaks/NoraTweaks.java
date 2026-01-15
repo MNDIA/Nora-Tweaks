@@ -71,7 +71,6 @@ public class NoraTweaks extends MeteorAddon {
             LOG.info("Meteor Client already has better-locator module, skipping BetterLocator.");
         }
 
-        // OreSim has integrated baritone support via mixin when baritone is available
         Modules.get().add(new OreSim());
 
         Commands.add(new MobCheckerCommand());
@@ -85,13 +84,11 @@ public class NoraTweaks extends MeteorAddon {
 
         ConfigModifier.get();
         
-        // Check Meteor Rejects version and recommend fork for older versions
         checkMeteorRejectsVersion();
     }
     
     private void checkMeteorRejectsVersion() {
         try {
-            // Try to find Meteor Rejects mod
             var rejectsMod = net.fabricmc.loader.api.FabricLoader.getInstance()
                 .getModContainer("meteor-rejects")
                 .orElse(null);
@@ -100,24 +97,20 @@ public class NoraTweaks extends MeteorAddon {
                 String version = rejectsMod.getMetadata().getVersion().getFriendlyString();
                 LOG.info("Detected Meteor Rejects version: {}", version);
                 
-                // Parse version and check if < 0.4.0
                 if (isVersionLowerThan(version, "0.4.0")) {
                     LOG.warn("=".repeat(60));
-                    LOG.warn("OUTDATED METEOR REJECTS DETECTED!");
                     LOG.warn("Your Meteor Rejects version ({}) is outdated.", version);
-                    LOG.warn("Please use the updated fork for better compatibility:");
+                    LOG.warn("Please use the updated fork of Meteor Rejects for better compatibility:");
                     LOG.warn("https://github.com/MCDxAI/meteor-rejects-v2");
                     LOG.warn("=".repeat(60));
                 }
             }
         } catch (Exception e) {
-            // Meteor Rejects not installed or error checking version
         }
     }
     
     private boolean isVersionLowerThan(String version, String target) {
         try {
-            // Extract major.minor.patch numbers
             String[] vParts = version.split("[.-]");
             String[] tParts = target.split("[.-]");
             
