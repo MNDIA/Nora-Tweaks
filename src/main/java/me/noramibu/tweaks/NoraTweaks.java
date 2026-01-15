@@ -14,7 +14,6 @@ import me.noramibu.tweaks.modules.WindChargeJump;
 import me.noramibu.tweaks.modules.AutoTrapPlus;
 import me.noramibu.tweaks.modules.DeepslateESP;
 import me.noramibu.tweaks.modules.OreSim;
-import me.noramibu.tweaks.modules.OreSimBaritone;
 import me.noramibu.tweaks.modules.PearlChecker;
 import me.noramibu.tweaks.modules.BetterLocator;
 import me.noramibu.tweaks.modules.AttributeSwapping;
@@ -72,13 +71,8 @@ public class NoraTweaks extends MeteorAddon {
             LOG.info("Meteor Client already has better-locator module, skipping BetterLocator.");
         }
 
-        // Conditionally register OreSimBaritone if Baritone is available
-        if (isBaritonePresent()) {
-            Modules.get().add(new OreSimBaritone());
-        } else {
-            LOG.warn("Baritone not loaded or API classes missing, skipping OreSim with Baritone module.");
-            Modules.get().add(new OreSim());
-        }
+        // OreSim has integrated baritone support via mixin when baritone is available
+        Modules.get().add(new OreSim());
 
         Commands.add(new MobCheckerCommand());
         Commands.add(new CalculatorCommand());
@@ -90,6 +84,53 @@ public class NoraTweaks extends MeteorAddon {
         Systems.add(new StartupDataCollector());
 
         ConfigModifier.get();
+        
+        // Check Meteor Rejects version and recommend fork for older versions
+        checkMeteorRejectsVersion();
+    }
+    
+    private void checkMeteorRejectsVersion() {
+        try {
+            // Try to find Meteor Rejects mod
+            var rejectsMod = net.fabricmc.loader.api.FabricLoader.getInstance()
+                .getModContainer("meteor-rejects")
+                .orElse(null);
+            
+            if (rejectsMod != null) {
+                String version = rejectsMod.getMetadata().getVersion().getFriendlyString();
+                LOG.info("Detected Meteor Rejects version: {}", version);
+                
+                // Parse version and check if < 0.4.0
+                if (isVersionLowerThan(version, "0.4.0")) {
+                    LOG.warn("=".repeat(60));
+                    LOG.warn("OUTDATED METEOR REJECTS DETECTED!");
+                    LOG.warn("Your Meteor Rejects version ({}) is outdated.", version);
+                    LOG.warn("Please use the updated fork for better compatibility:");
+                    LOG.warn("https://github.com/MCDxAI/meteor-rejects-v2");
+                    LOG.warn("=".repeat(60));
+                }
+            }
+        } catch (Exception e) {
+            // Meteor Rejects not installed or error checking version
+        }
+    }
+    
+    private boolean isVersionLowerThan(String version, String target) {
+        try {
+            // Extract major.minor.patch numbers
+            String[] vParts = version.split("[.-]");
+            String[] tParts = target.split("[.-]");
+            
+            for (int i = 0; i < Math.min(3, Math.min(vParts.length, tParts.length)); i++) {
+                int v = Integer.parseInt(vParts[i].replaceAll("[^0-9]", ""));
+                int t = Integer.parseInt(tParts[i].replaceAll("[^0-9]", ""));
+                if (v < t) return true;
+                if (v > t) return false;
+            }
+            return false;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Override

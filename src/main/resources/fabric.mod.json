@@ -13,6 +13,9 @@
   "icon": "assets/nora-tweaks/icon.png",
   "environment": "client",
   "entrypoints": {
+    "mixinsquared": [
+      "me.noramibu.tweaks.RejectsBaritoneCancel"
+    ],
     "meteor": [
       "me.noramibu.tweaks.NoraTweaks"
     ]

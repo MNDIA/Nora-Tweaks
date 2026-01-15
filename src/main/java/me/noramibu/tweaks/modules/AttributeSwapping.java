@@ -1,26 +1,26 @@
 /*
- * Implemented from Meteor Client PR #5727
- * https://github.com/MeteorDevelopment/meteor-client/pull/5727
- * This module will not be registered if Meteor Client already has attribute-swap.
+ * This file is part of the Meteor Client distribution (https://github.com/MeteorDevelopment/meteor-client).
+ * Copyright (c) Meteor Development.
  */
 
 package me.noramibu.tweaks.modules;
 
 import me.noramibu.tweaks.NoraTweaks;
+import me.noramibu.tweaks.events.DoAttackEvent;
+import meteordevelopment.meteorclient.events.entity.player.AttackEntityEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
-import net.minecraft.entity.Entity;
-import meteordevelopment.meteorclient.events.entity.player.AttackEntityEvent;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.component.type.AttributeModifierSlot;
 import net.minecraft.enchantment.Enchantments;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.AxeItem;
 import net.minecraft.item.ItemStack;
@@ -28,6 +28,7 @@ import net.minecraft.item.MaceItem;
 import net.minecraft.item.TridentItem;
 import net.minecraft.registry.tag.EntityTypeTags;
 import net.minecraft.registry.tag.ItemTags;
+import net.minecraft.util.hit.HitResult;
 
 public class AttributeSwapping extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -48,8 +49,15 @@ public class AttributeSwapping extends Module {
         .name("target-slot")
         .description("Hotbar slot to swap to (1-9).")
         .defaultValue(1)
-        .min(1)
-        .sliderRange(1, 9)
+        .range(1, 9)
+        .visible(() -> mode.get() == Mode.Simple)
+        .build()
+    );
+
+    private final Setting<Boolean> swapOnMiss = sgGeneral.add(new BoolSetting.Builder()
+        .name("swap-on-miss")
+        .description("Whether to swap on a missed attack. Useful for quickly lunging with spears.")
+        .defaultValue(false)
         .visible(() -> mode.get() == Mode.Simple)
         .build()
     );
@@ -267,7 +275,7 @@ public class AttributeSwapping extends Module {
     private boolean awaitingBack;
 
     public AttributeSwapping() {
-        super(NoraTweaks.CATEGORY, "attribute-swapping", "Swaps to a target slot when you attack.");
+        super(NoraTweaks.CATEGORY, "attribute-swap", "Swaps to a target slot when you attack.");
     }
 
     @Override
@@ -277,21 +285,31 @@ public class AttributeSwapping extends Module {
     }
 
     @EventHandler
-    private void onAttack(AttackEntityEvent event) {
-        if (!canSwapByWeapon()) return;
+    private void onAttack(DoAttackEvent event) {
+        if (!canSwapByWeapon() || mode.get() == Mode.Smart || !swapOnMiss.get()) return;
+        if (mc.crosshairTarget.getType() == HitResult.Type.BLOCK) return;
+
+        doSwap(targetSlot.get() - 1);
+    }
+
+    @EventHandler
+    private void onAttackEntity(AttackEntityEvent event) {
+        if (!canSwapByWeapon() || (mode.get() == Mode.Simple && swapOnMiss.get())) return;
         performSwap(event.entity);
     }
 
     private void performSwap(Entity target) {
         if (awaitingBack) return;
 
-        int slotIndex;
-
         if (mode.get() == Mode.Simple) {
-            slotIndex = targetSlot.get() - 1;
+            doSwap(targetSlot.get() - 1);
         } else {
-            slotIndex = getSmartSlot(target);
+            doSwap(getSmartSlot(target));
         }
+    }
+
+    private void doSwap(int slotIndex) {
+        if (awaitingBack) return;
 
         if (slotIndex < 0 || slotIndex > 8) return;
         if (slotIndex == mc.player.getInventory().getSelectedSlot()) return;
@@ -314,19 +332,20 @@ public class AttributeSwapping extends Module {
         if (!onlyOnWeapon.get()) return true;
         return InvUtils.testInMainHand(item ->
             (sword.get() && item.isIn(ItemTags.SWORDS)) ||
-            (axe.get() && item.isIn(ItemTags.AXES)) ||
-            (pickaxe.get() && item.isIn(ItemTags.PICKAXES)) ||
-            (shovel.get() && item.isIn(ItemTags.SHOVELS)) ||
-            (hoe.get() && item.isIn(ItemTags.HOES)) ||
-            (mace.get() && item.getItem() instanceof MaceItem) ||
-            (trident.get() && item.getItem() instanceof TridentItem)
+                (axe.get() && item.isIn(ItemTags.AXES)) ||
+                (pickaxe.get() && item.isIn(ItemTags.PICKAXES)) ||
+                (shovel.get() && item.isIn(ItemTags.SHOVELS)) ||
+                (hoe.get() && item.isIn(ItemTags.HOES)) ||
+                (mace.get() && item.getItem() instanceof MaceItem) ||
+                (trident.get() && item.getItem() instanceof TridentItem)
         );
     }
 
     private int getSmartSlot(Entity target) {
         ItemStack currentStack = mc.player.getMainHandStack();
 
-        if (target != null && smartShieldBreak.get() && target instanceof LivingEntity living && living.isBlocking() && !(currentStack.getItem() instanceof AxeItem)) {
+        if (target != null && smartShieldBreak.get() && target instanceof LivingEntity living && living.isBlocking()) {
+            if (currentStack.getItem() instanceof AxeItem) return -1;
             int axeSlot = InvUtils.findInHotbar(item -> item.getItem() instanceof AxeItem).slot();
             if (axeSlot != -1) return axeSlot;
         }
@@ -341,11 +360,11 @@ public class AttributeSwapping extends Module {
         boolean isArthropod = target != null && target.getType().isIn(EntityTypeTags.SENSITIVE_TO_BANE_OF_ARTHROPODS);
         boolean isAquatic = target != null && target.getType().isIn(EntityTypeTags.SENSITIVE_TO_IMPALING);
         boolean hasFireResistance = isLiving && (((LivingEntity) target).hasStatusEffect(StatusEffects.FIRE_RESISTANCE) || hasFireProtectionArmor((LivingEntity) target));
-        double armor = (isLiving) ? ((LivingEntity) target).getAttributeValue(EntityAttributes.ARMOR) : 0;
-        float health = (isLiving) ? ((LivingEntity) target).getHealth() : 0;
+        double armor = isLiving ? ((LivingEntity) target).getAttributeValue(EntityAttributes.ARMOR) : 0;
+        float health = isLiving ? ((LivingEntity) target).getHealth() : 0;
 
         int bestSlot = -1;
-        double bestScore = getItemScore(currentStack, target, isFalling, durability, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
+        double bestScore = getItemScore(currentStack, isFalling, durability, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
 
         for (int i = 0; i < 9; i++) {
             if (i == mc.player.getInventory().getSelectedSlot()) continue;
@@ -353,7 +372,7 @@ public class AttributeSwapping extends Module {
             ItemStack stack = mc.player.getInventory().getStack(i);
             if (stack.isEmpty() && !durability) continue;
 
-            double score = getItemScore(stack, target, isFalling, durability, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
+            double score = getItemScore(stack, isFalling, durability, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
             if (score > bestScore) {
                 bestScore = score;
                 bestSlot = i;
@@ -363,17 +382,16 @@ public class AttributeSwapping extends Module {
         return bestSlot;
     }
 
-    private double getItemScore(ItemStack stack, Entity target, boolean isFalling, boolean durability, boolean isLiving, boolean isPlayer, boolean isOnFire, boolean hasFireResistance, boolean isUndead, boolean isArthropod, boolean isAquatic, double armor, float health) {
+    private double getItemScore(ItemStack stack, boolean isFalling, boolean durability, boolean isLiving, boolean isPlayer, boolean isOnFire, boolean hasFireResistance, boolean isUndead, boolean isArthropod, boolean isAquatic, double armor, float health) {
         double score = 0;
 
         if (durability) {
-            double duraScore = getDurabilityScore(stack);
-            score += duraScore;
+            score += getDurabilityScore(stack);
         }
 
         if (stack.isEmpty()) return score;
 
-        score += getCombatScore(stack, target, isFalling, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
+        score += getCombatScore(stack, isFalling, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
 
         return score;
     }
@@ -387,20 +405,26 @@ public class AttributeSwapping extends Module {
         return 0;
     }
 
-    private double getCombatScore(ItemStack stack, Entity target, boolean isFalling, boolean isLiving, boolean isPlayer, boolean isOnFire, boolean hasFireResistance, boolean isUndead, boolean isArthropod, boolean isAquatic, double armor, float health) {
+    private double getCombatScore(ItemStack stack, boolean isFalling, boolean isLiving, boolean isPlayer, boolean isOnFire, boolean hasFireResistance, boolean isUndead, boolean isArthropod, boolean isAquatic, double armor, float health) {
         double score = 0;
 
-        score += getFireAspectScore(stack, isOnFire, hasFireResistance);
-        score += getLootingScore(stack, isPlayer, isLiving, isOnFire, health);
-        score += getSharpnessScore(stack, isOnFire);
-        score += getSmiteScore(stack, isUndead, isOnFire);
-        score += getBaneOfArthropodsScore(stack, isArthropod, isOnFire);
-        score += getSweepingEdgeScore(stack);
-        score += getImpalingScore(stack, isAquatic);
-        score += getBreachScore(stack, isLiving, armor);
-        score += getDensityScore(stack, isFalling);
-        score += getWindBurstScore(stack, isFalling);
-        score += getMaceScore(stack, isFalling);
+        if (swordSwapping.get()) {
+            score += getFireAspectScore(stack, isOnFire, hasFireResistance);
+            score += getLootingScore(stack, isPlayer, isLiving, isOnFire, health);
+            score += getSharpnessScore(stack, isOnFire);
+            score += getSmiteScore(stack, isUndead, isOnFire);
+            score += getBaneOfArthropodsScore(stack, isArthropod, isOnFire);
+            score += getSweepingEdgeScore(stack);
+        }
+        if (maceSwapping.get()) {
+            score += getBreachScore(stack, isLiving, armor);
+            score += getDensityScore(stack, isFalling);
+            score += getWindBurstScore(stack, isFalling);
+            score += getMaceScore(stack, isFalling);
+        }
+        if (otherSwapping.get()) {
+            score += getImpalingScore(stack, isAquatic);
+        }
 
         return score;
     }

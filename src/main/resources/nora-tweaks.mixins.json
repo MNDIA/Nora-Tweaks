@@ -9,8 +9,12 @@
   ],
   "client": [
     "LocatorBarMixin",
+    "MinecraftClientMixin",
     "ModulesScreenMixin",
-    "SingleModuleScreenMixin"
+    "SingleModuleScreenMixin",
+    "baritone.MineProcessMixin",
+    "baritone.MineProcessMixinApi",
+    "rejects.MeteorRejectsAddonMixin"
   ],
   "injectors": {
     "defaultRequire": 1

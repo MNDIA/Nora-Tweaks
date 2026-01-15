@@ -27,7 +27,7 @@ public class SeedCommand extends Command {
     private static final SimpleCommandExceptionType INVALID_VERSION = new SimpleCommandExceptionType(Text.literal("Unknown Minecraft version."));
 
     public SeedCommand() {
-        super("seed", "Get or set the seed for the current world.");
+        super("seed-world", "Get or set the seed for the current world.");
     }
 
     @Override

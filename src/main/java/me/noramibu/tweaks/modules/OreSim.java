@@ -6,6 +6,7 @@
  */
 package me.noramibu.tweaks.modules;
 
+import baritone.api.BaritoneAPI;
 import me.noramibu.tweaks.NoraTweaks;
 import me.noramibu.tweaks.utils.Ore;
 import me.noramibu.tweaks.utils.Seeds;
@@ -17,8 +18,7 @@ import meteordevelopment.meteorclient.events.world.ChunkDataEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
-import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
-import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
+import meteordevelopment.meteorclient.pathing.BaritoneUtils;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.Utils;
@@ -26,7 +26,6 @@ import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.registry.RegistryKey;
-import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Direction;
@@ -51,6 +50,9 @@ public class OreSim extends Module {
     private String lastWorldName;
     private RegistryKey<World> lastWorldKey;
 
+    // Ore positions for Baritone integration (accessed by MineProcessMixin)
+    public List<BlockPos> oreGoals = new ArrayList<>();
+
     public enum AirCheck {
         ON_LOAD,
         RECHECK,
@@ -73,32 +75,31 @@ public class OreSim extends Module {
         .defaultValue(AirCheck.RECHECK)
         .build());
 
+    private final Setting<Boolean> baritone = sgGeneral.add(new BoolSetting.Builder()
+        .name("baritone")
+        .description("Set baritone ore positions to the simulated ones.")
+        .defaultValue(true)
+        .build());
+
+    public boolean baritone() {
+        return isActive() && baritone.get() && BaritoneUtils.IS_AVAILABLE;
+    }
+
+    @Override
+    public WWidget getWidget(GuiTheme theme) {
+        meteordevelopment.meteorclient.gui.widgets.containers.WTable table = theme.table();
+        table.add(theme.label("Supports: baritone-api, baritone-meteor, baritone-unoptimized")).expandX();
+        table.row();
+        table.add(theme.label("Doesn't support: baritone-standalone")).expandX();
+        return table;
+    }
+
     public OreSim() {
         super(NoraTweaks.CATEGORY, "ore-sim", "Simulates vanilla ore generation using the world seed.");
         SettingGroup sgOres = settings.createGroup("Ores");
         Ore.oreSettings.forEach(sgOres::add);
     }
-    
-    @Override
-    public WWidget getWidget(GuiTheme theme) {
-        WTable table = theme.table();
-        
-        WButton startButton = table.add(theme.button("Start Baritone Goal")).expandX().widget();
-        startButton.action = () -> {
-            if (mc.player != null) {
-                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cBaritone not loaded."), false);
-            }
-        };
-        
-        WButton stopButton = table.add(theme.button("Stop Baritone Goal")).expandX().widget();
-        stopButton.action = () -> {
-            if (mc.player != null) {
-                mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §cBaritone not loaded."), false);
-            }
-        };
-        
-        return table;
-    }
+
 
     @EventHandler
     private void onRender(Render3DEvent event) {
@@ -150,6 +151,38 @@ public class OreSim extends Module {
         if (mc.player == null || mc.world == null || oreConfig == null) return;
 
         detectWorldChange();
+
+        // Populate oreGoals for Baritone integration when mine process is active
+        if (baritone() && BaritoneAPI.getProvider().getPrimaryBaritone().getMineProcess().isActive()) {
+            oreGoals.clear();
+            ChunkPos chunkPos = mc.player.getChunkPos();
+            int rangeVal = 4;
+            for (int range = 0; range <= rangeVal; range++) {
+                for (int x = -range + chunkPos.x; x <= range + chunkPos.x; x++) {
+                    oreGoals.addAll(addToBaritone(x, chunkPos.z + range - rangeVal));
+                }
+                for (int x = -range + 1 + chunkPos.x; x < range + chunkPos.x; x++) {
+                    oreGoals.addAll(addToBaritone(x, chunkPos.z - range + rangeVal + 1));
+                }
+            }
+        }
+    }
+
+    /**
+     * Collect ore positions from a chunk for Baritone.
+     */
+    private ArrayList<BlockPos> addToBaritone(int chunkX, int chunkZ) {
+        ArrayList<BlockPos> baritoneGoals = new ArrayList<>();
+        long chunkKey = ChunkPos.toLong(chunkX, chunkZ);
+        Map<Ore, Set<Vec3d>> chunk = chunkRenderers.get(chunkKey);
+        if (chunk != null) {
+            chunk.entrySet().stream()
+                .filter(entry -> entry.getKey().active.get())
+                .flatMap(entry -> entry.getValue().stream())
+                .map(BlockPos::ofFloored)
+                .forEach(baritoneGoals::add);
+        }
+        return baritoneGoals;
     }
 
     @Override

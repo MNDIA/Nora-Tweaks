@@ -1,7 +1,9 @@
 import org.gradle.api.file.DuplicatesStrategy
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
     id("fabric-loom")
+    id("com.gradleup.shadow") version "9.0.0-beta12"
 }
 
 val minecraftVersion = stonecutter.current.version
@@ -24,12 +26,13 @@ repositories {
     maven("meteor-maven-snapshots") { url = uri("https://maven.meteordev.org/snapshots") }
     maven("JitPack") { url = uri("https://jitpack.io") }
     maven("DutiReleases") { url = uri("https://maven.duti.dev/releases") }
+    maven("Bawnorton") { url = uri("https://maven.bawnorton.com/releases") }
 }
 
-val extraLibs = configurations.create("extraLibs")
+val shade by configurations.creating
 
 configurations.named("implementation") {
-    extendsFrom(extraLibs)
+    extendsFrom(shade)
 }
 
 dependencies {
@@ -44,11 +47,15 @@ dependencies {
         isTransitive = false
     }
 
-    // Cubiomes native bundles
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5") { isTransitive = false }
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:linux64") { isTransitive = false }
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:osx") { isTransitive = false }
-    add("extraLibs", "dev.duti.acheong:cubiomes:1.22.5:windows64") { isTransitive = false }
+    // MixinSquared
+    include(modImplementation("com.bawnorton.mixinsquared:mixinsquared-fabric:0.2.0")!!)
+    annotationProcessor("com.bawnorton.mixinsquared:mixinsquared-fabric:0.2.0")
+
+    // Cubiomes native bundles - shaded to avoid conflicts with Meteor Rejects
+    shade("dev.duti.acheong:cubiomes:1.22.5") { isTransitive = false }
+    shade("dev.duti.acheong:cubiomes:1.22.5:linux64") { isTransitive = false }
+    shade("dev.duti.acheong:cubiomes:1.22.5:osx") { isTransitive = false }
+    shade("dev.duti.acheong:cubiomes:1.22.5:windows64") { isTransitive = false }
 }
 
 tasks {
@@ -67,18 +74,25 @@ tasks {
         }
     }
 
+    val shadowJar by getting(ShadowJar::class) {
+        configurations = listOf(shade)
+        archiveClassifier.set("dev")
+
+        relocate("cubitect", "me.noramibu.tweaks.libs.cubitect")
+        relocate("dev.duti.acheong.cubiomes", "me.noramibu.tweaks.libs.cubiomes")
+    }
+
+    remapJar {
+        dependsOn(shadowJar)
+        inputFile.set(shadowJar.archiveFile)
+    }
+
     jar {
         inputs.property("archivesName", project.base.archivesName.get())
 
         from("LICENSE") {
             rename { "${it}_${inputs.properties["archivesName"]}" }
         }
-
-        from({
-            configurations["extraLibs"].filter { it.exists() }.map { file ->
-                if (file.isDirectory) file else zipTree(file)
-            }
-        })
 
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
@@ -95,3 +109,4 @@ tasks {
         options.compilerArgs.add("-Xlint:unchecked")
     }
 }
+
