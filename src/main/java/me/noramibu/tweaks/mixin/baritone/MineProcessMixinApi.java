@@ -98,14 +98,10 @@ public class MineProcessMixinApi {
                 return true;
             }
         } catch (Exception e) {
-            // Silently fail - mixin just won't work
         }
         return false;
     }
 
-    /**
-     * Gets the first List<BlockPos> field (knownOreLocations), caching the result.
-     */
     @Unique
     private static Field getKnownOreLocationsField(Class<?> clazz) {
         if (fieldLookupAttempted) {
@@ -114,8 +110,6 @@ public class MineProcessMixinApi {
 
         fieldLookupAttempted = true;
 
-        // For baritone-api (baritone.em), iterate fields in declaration order.
-        // The knownOreLocations field is the FIRST List<BlockPos> field declared.
         Field firstListBlockPosField = null;
         for (Field field : clazz.getDeclaredFields()) {
             if (List.class.isAssignableFrom(field.getType())) {
@@ -140,10 +134,6 @@ public class MineProcessMixinApi {
         return cachedField;
     }
 
-    /**
-     * Redirects the BlockOptionalMetaLookup.has() check to be more permissive when OreSim is active.
-     * Uses wildcard '*' to match any method containing has() call.
-     */
     @Redirect(
         method = "*",
         at = @At(value = "INVOKE", target = "Lbaritone/api/utils/BlockOptionalMetaLookup;has(Lnet/minecraft/block/BlockState;)Z"),
@@ -155,7 +145,6 @@ public class MineProcessMixinApi {
         if (oreSim == null || !oreSim.baritone()) {
             return instance.has(blockState);
         }
-        // When OreSim baritone is active, accept any non-air block
         return !blockState.isAir();
     }
 }

@@ -1,4 +1,4 @@
-package me.noramibu.tweaks.mixin;
+package me.noramibu.tweaks.mixin.catpuccin;
 
 import me.noramibu.tweaks.category.CustomCategoryHelper;
 import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
@@ -12,8 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
-@Mixin(targets = "meteordevelopment.meteorclient.gui.screens.ModulesScreen$WCategoryController", remap = false)
-public abstract class ModulesScreenMixin extends WContainer {
+@Mixin(targets = "me.pindour.catpuccin.gui.screens.CatpuccinModulesScreen$WCategoryController", remap = false)
+public abstract class CatpuccinModulesScreenMixin extends WContainer {
     @Shadow public List<WWindow> windows;
 
     @Unique private CustomCategoryHelper helper;

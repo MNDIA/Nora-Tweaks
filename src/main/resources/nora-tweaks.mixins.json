@@ -2,6 +2,7 @@
   "required": true,
   "package": "me.noramibu.tweaks.mixin",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "me.noramibu.tweaks.mixin.NoraTweaksMixinPlugin",
   "mixins": [
     "CountPlacementModifierAccessor",
     "HeightRangePlacementModifierAccessor",
@@ -14,6 +15,7 @@
     "SingleModuleScreenMixin",
     "baritone.MineProcessMixin",
     "baritone.MineProcessMixinApi",
+    "catpuccin.CatpuccinModulesScreenMixin",
     "rejects.MeteorRejectsAddonMixin"
   ],
   "injectors": {
