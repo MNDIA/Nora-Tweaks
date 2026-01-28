@@ -10,7 +10,7 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.input.WIntEdit;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.gui.widgets.input.WDropdown;
-//? if >=1.21.10 {
+//? if >=1.21.9 {
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.input.KeyInput;
 //?}
@@ -150,7 +150,7 @@ public class EditHotkeyScreen extends WindowScreen {
         module.saveHotkeys();
     }
 
-    //? if >=1.21.10 {
+    //? if >=1.21.9 {
     @Override
     public boolean mouseClicked(Click click, boolean doubled) {
         for (WKeybind w : keybindWidgets) {

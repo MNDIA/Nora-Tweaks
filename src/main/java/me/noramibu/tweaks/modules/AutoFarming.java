@@ -471,7 +471,7 @@ public class AutoFarming extends Module {
     }
 
     private double getPlayerDistance(BlockPos pos) {
-        //? if >=1.21.10 {
+        //? if >=1.21.9 {
         return mc.player.getEyePos().distanceTo(Vec3d.ofCenter(pos));
         //?} else
         /*return mc.player.getPos().distanceTo(Vec3d.ofCenter(pos));
@@ -492,7 +492,7 @@ public class AutoFarming extends Module {
     private void cleanupReplantMap() {
         if (mc.player == null || replantMap.isEmpty()) return;
 
-        //? if >=1.21.10 {
+        //? if >=1.21.9 {
         Vec3d playerPos = mc.player.getEntityPos();
         //?} else
         /*Vec3d playerPos = mc.player.getPos();

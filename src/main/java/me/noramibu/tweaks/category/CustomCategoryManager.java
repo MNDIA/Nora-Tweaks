@@ -27,7 +27,7 @@ public class CustomCategoryManager {
     public static void init() {
         load();
         if (categories.isEmpty()) {
-            addCategory("Favorites");
+            addCategory("Example Category");
         }
     }
 

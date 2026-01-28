@@ -1,3 +1,4 @@
+//? if >=1.21.7 {
 package me.noramibu.tweaks.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
@@ -161,7 +162,7 @@ public abstract class LocatorBarMixin {
 
         if (showHeads) {
             float drawX = x - (size - 9) / 2;
-            //? if >=1.21.10 {
+            //? if >=1.21.9 {
             Identifier skin = entry.getSkinTextures().body().texturePath();
             context.drawTexture(RenderPipelines.GUI_TEXTURED, skin, (int) drawX, (int) drawY, 8.0f, 8.0f, (int) size, (int) size, 8, 8, 64, 64);
             context.drawTexture(RenderPipelines.GUI_TEXTURED, skin, (int) drawX, (int) drawY, 40.0f, 8.0f, (int) size, (int) size, 8, 8, 64, 64);
@@ -189,7 +190,7 @@ public abstract class LocatorBarMixin {
             String text = "";
             if (module.displayPlayerName.get()) {
                 Text name = entry.getDisplayName();
-                //? if >=1.21.10 {
+                //? if >=1.21.9 {
                 text = (name != null ? name : Text.of(entry.getProfile().name())).getString();
                 //?} else
                 /*text = (name != null ? name : Text.of(entry.getProfile().getName())).getString();
@@ -224,3 +225,11 @@ public abstract class LocatorBarMixin {
         context.getMatrices().popMatrix();
     }
 }
+//?} else {
+/*package me.noramibu.tweaks.mixin;
+
+// Stub class for versions before 1.21.7 where LocatorBar doesn't exist.
+// The MixinPlugin will skip applying this mixin.
+public class LocatorBarMixin {}
+*/
+//?}

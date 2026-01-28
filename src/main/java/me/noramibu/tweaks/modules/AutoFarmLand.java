@@ -119,14 +119,14 @@ public class AutoFarmLand extends Module {
             .map(BlockPos::toImmutable)
             .filter(bp -> targetBlocks.contains(mc.world.getBlockState(bp).getBlock()))
             .filter(bp -> {
-                //? if >=1.21.10 {
+                //? if >=1.21.9 {
                 return mc.player.getEntityPos().squaredDistanceTo(Vec3d.ofCenter(bp)) <= rangeSq;
                 //?} else
                 /*return mc.player.getPos().squaredDistanceTo(Vec3d.ofCenter(bp)) <= rangeSq;
                 */
             })
             .sorted(Comparator.comparing(bp -> {
-                //? if >=1.21.10 {
+                //? if >=1.21.9 {
                 return mc.player.getEntityPos().distanceTo(Vec3d.ofCenter(bp));
                 //?} else
                 /*return mc.player.getPos().distanceTo(Vec3d.ofCenter(bp));

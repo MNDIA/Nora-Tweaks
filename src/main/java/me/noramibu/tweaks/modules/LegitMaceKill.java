@@ -91,7 +91,7 @@ public class LegitMaceKill extends Module {
         if (packetDisable.get() && (targetEntity.isBlocking() || targetEntity.isInvulnerable() || targetEntity.isInCreativeMode()))
             return;
 
-        //? if >=1.21.10 {
+        //? if >=1.21.9 {
         previouspos = mc.player.getEntityPos();
         //?} else
         /*previouspos = mc.player.getPos();

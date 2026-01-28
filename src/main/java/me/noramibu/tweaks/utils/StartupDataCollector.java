@@ -85,7 +85,11 @@ public class StartupDataCollector extends System<StartupDataCollector> {
 
     @Override
     public StartupDataCollector fromTag(NbtCompound tag) {
+        //? if >=1.21.5 {
         tag.getBoolean("collectData").ifPresent(value -> collectData = value);
+        //?} else
+        /*collectData = tag.getBoolean("collectData");
+        */
         return this;
     }
 

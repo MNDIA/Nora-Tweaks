@@ -11,7 +11,12 @@ val yarnMappings = project.property("yarn_mappings") as String
 val loaderVersion = project.property("loader_version") as String
 val modVersion = project.property("mod.version") as String
 val mavenGroup = project.property("maven_group") as String
-val baritoneVersion = "1.21.10"
+val baritoneVersion = "1.21.11"
+
+val meteorVersion = when (minecraftVersion) {
+    "1.21.9" -> "1.21.10"
+    else -> minecraftVersion
+}
 
 base {
     archivesName = project.property("archives_base_name") as String
@@ -41,8 +46,8 @@ dependencies {
     mappings("net.fabricmc:yarn:$yarnMappings:v2")
     modImplementation("net.fabricmc:fabric-loader:$loaderVersion")
 
-    // Meteor / Baritone (match meteor-rejects)
-    modImplementation("meteordevelopment:meteor-client:${minecraftVersion}-SNAPSHOT")
+    // Meteor / Baritone
+    modImplementation("meteordevelopment:meteor-client:${meteorVersion}-SNAPSHOT")
     modCompileOnly("meteordevelopment:baritone:${baritoneVersion}-SNAPSHOT") {
         isTransitive = false
     }

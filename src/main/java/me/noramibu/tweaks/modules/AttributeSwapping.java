@@ -312,7 +312,11 @@ public class AttributeSwapping extends Module {
         if (awaitingBack) return;
 
         if (slotIndex < 0 || slotIndex > 8) return;
+        //? if >=1.21.5 {
         if (slotIndex == mc.player.getInventory().getSelectedSlot()) return;
+        //?} else
+        /*if (slotIndex == mc.player.getInventory().selectedSlot) return;
+        */
 
         if (!InvUtils.swap(slotIndex, swapBack.get())) return;
 
@@ -367,7 +371,11 @@ public class AttributeSwapping extends Module {
         double bestScore = getItemScore(currentStack, isFalling, durability, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
 
         for (int i = 0; i < 9; i++) {
+            //? if >=1.21.5 {
             if (i == mc.player.getInventory().getSelectedSlot()) continue;
+            //?} else
+            /*if (i == mc.player.getInventory().selectedSlot) continue;
+            */
 
             ItemStack stack = mc.player.getInventory().getStack(i);
             if (stack.isEmpty() && !durability) continue;
@@ -524,6 +532,7 @@ public class AttributeSwapping extends Module {
     }
 
     private boolean hasFireProtectionArmor(LivingEntity entity) {
+        //? if >=1.21.5 {
         for (EquipmentSlot slot : AttributeModifierSlot.ARMOR) {
             ItemStack stack = entity.getEquippedStack(slot);
             if (stack.isEmpty()) continue;
@@ -531,6 +540,16 @@ public class AttributeSwapping extends Module {
             int fireProtection = Utils.getEnchantmentLevel(stack, Enchantments.FIRE_PROTECTION);
             if (fireProtection > 0) return true;
         }
+        //?} else {
+        /*for (EquipmentSlot slot : new EquipmentSlot[]{EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET}) {
+            ItemStack stack = entity.getEquippedStack(slot);
+            if (stack.isEmpty()) continue;
+
+            int fireProtection = Utils.getEnchantmentLevel(stack, Enchantments.FIRE_PROTECTION);
+            if (fireProtection > 0) return true;
+        }
+        */
+        //?}
         return false;
     }
 

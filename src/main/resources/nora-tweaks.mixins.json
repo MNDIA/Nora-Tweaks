@@ -9,7 +9,6 @@
     "RarityFilterPlacementModifierAccessor"
   ],
   "client": [
-    "LocatorBarMixin",
     "MinecraftClientMixin",
     "ModulesScreenMixin",
     "SingleModuleScreenMixin",

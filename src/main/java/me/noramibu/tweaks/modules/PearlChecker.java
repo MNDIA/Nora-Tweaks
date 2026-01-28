@@ -153,7 +153,7 @@ public class PearlChecker extends Module {
             if (ignoreSelf.get() && owner == mc.player) continue;
 
             String label = null;
-            //? if >=1.21.10 {
+            //? if >=1.21.9 {
             if (owner instanceof PlayerEntity p) label = p.getGameProfile().name();
             //?} else
             /*if (owner instanceof PlayerEntity p) label = p.getGameProfile().getName();
@@ -165,7 +165,7 @@ public class PearlChecker extends Module {
                 continue;
             }
 
-            //? if >=1.21.10 {
+            //? if >=1.21.9 {
             if (owner instanceof PlayerEntity pset) pearlOwnerCache.put(pearl.getId(), pset.getGameProfile().name());
             //?} else
             /*if (owner instanceof PlayerEntity pset) pearlOwnerCache.put(pearl.getId(), pset.getGameProfile().getName());
@@ -185,7 +185,11 @@ public class PearlChecker extends Module {
 
             Renderer2D.COLOR.begin();
             Renderer2D.COLOR.quad(x - 1, y - 1, w + 2, text.getHeight() + 2, BACKGROUND);
+            //? if >=1.21.5 {
             Renderer2D.COLOR.render();
+            //?} else
+            /*Renderer2D.COLOR.render(event.drawContext.getMatrices());
+            */
 
             text.render(label, x, y, new Color(textColor.get()));
 
@@ -199,7 +203,7 @@ public class PearlChecker extends Module {
         if (!isActive() || mc.world == null) return;
         if (!(event.entity instanceof EnderPearlEntity pearl)) return;
 
-        //? if >=1.21.10 {
+        //? if >=1.21.9 {
         pearlStartPos.putIfAbsent(pearl.getUuid(), pearl.getEntityPos());
         //?} else
         /*pearlStartPos.putIfAbsent(pearl.getUuid(), pearl.getPos());
@@ -210,7 +214,7 @@ public class PearlChecker extends Module {
         if (notifyIgnoreSelf.get() && player == mc.player) return;
 
         if (notify.get() && !announcedThrown.contains(pearl.getUuid())) {
-            //? if >=1.21.10 {
+            //? if >=1.21.9 {
             String name = player.getGameProfile().name();
             //?} else
             /*String name = player.getGameProfile().getName();
@@ -231,7 +235,7 @@ public class PearlChecker extends Module {
         if (isActive() && notifyLand.get() && announcedThrown.contains(pearl.getUuid())) {
             Entity owner = pearl.getOwner();
             String ownerName = null;
-            //? if >=1.21.10 {
+            //? if >=1.21.9 {
             if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().name();
             //?} else
             /*if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().getName();
@@ -245,7 +249,7 @@ public class PearlChecker extends Module {
                 double fromDist = PlayerUtils.distanceTo(pearl);
                 Vec3d start = pearlStartPos.get(pearl.getUuid());
                 if (start != null) {
-                    //? if >=1.21.10 {
+                    //? if >=1.21.9 {
                     double travelled = start.distanceTo(pearl.getEntityPos());
                     //?} else
                     /*double travelled = start.distanceTo(pearl.getPos());
@@ -314,7 +318,7 @@ public class PearlChecker extends Module {
             if (notifyPredict.get() && announcedThrown.contains(pearl.getUuid()) && !predictedAnnounced.contains(pearl.getUuid())) {
                 Entity owner = pearl.getOwner();
                 String ownerName = null;
-                //? if >=1.21.10 {
+                //? if >=1.21.9 {
             if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().name();
             //?} else
             /*if (owner instanceof PlayerEntity p) ownerName = p.getGameProfile().getName();

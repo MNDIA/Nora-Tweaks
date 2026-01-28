@@ -15,6 +15,7 @@ import me.noramibu.tweaks.modules.AutoTrapPlus;
 import me.noramibu.tweaks.modules.DeepslateESP;
 import me.noramibu.tweaks.modules.OreSim;
 import me.noramibu.tweaks.modules.PearlChecker;
+//? if >=1.21.7
 import me.noramibu.tweaks.modules.BetterLocator;
 import me.noramibu.tweaks.modules.AttributeSwapping;
 
@@ -65,11 +66,13 @@ public class NoraTweaks extends MeteorAddon {
             LOG.info("Meteor Client already has attribute-swap module, skipping AttributeSwapping.");
         }
 
+        //? if >=1.21.7 {
         if (!isMeteorModulePresent("better-locator")) {
             Modules.get().add(new BetterLocator());
         } else {
             LOG.info("Meteor Client already has better-locator module, skipping BetterLocator.");
         }
+        //?}
 
         Modules.get().add(new OreSim());
 

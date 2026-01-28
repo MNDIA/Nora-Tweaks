@@ -111,7 +111,7 @@ public class HotkeyUtility extends Module {
         if (event.action != Press) return;
 
         for (Hotkey hotkey : hotkeys) {
-            //? if >=1.21.10 {
+            //? if >=1.21.9 {
             if (hotkey.keybind.matches(true, event.key(), event.modifiers())) {
             //?} else
             /*if (hotkey.keybind.matches(true, event.key, event.modifiers)) {
@@ -128,7 +128,11 @@ public class HotkeyUtility extends Module {
                     switch (hotkey.action) {
                         case SwitchSlot:
                             int targetSlot = hotkey.slot - 1;
+                            //? if >=1.21.5 {
                             if (mc.player != null && mc.player.getInventory().getSelectedSlot() != targetSlot) {
+                            //?} else
+                            /*if (mc.player != null && mc.player.getInventory().selectedSlot != targetSlot) {
+                            */
                                 mc.player.getInventory().setSelectedSlot(targetSlot);
                             }
                             break;
@@ -153,7 +157,11 @@ public class HotkeyUtility extends Module {
                                                 mc.player.getInventory().setSelectedSlot(emptyHotbarSlot);
                                             } else {
                                                 // Hotbar is full, swap with selected slot
+                                                //? if >=1.21.5 {
                                                 int selectedSlot = mc.player.getInventory().getSelectedSlot();
+                                                //?} else
+                                                /*int selectedSlot = mc.player.getInventory().selectedSlot;
+                                                */
                                                 mc.interactionManager.clickSlot(mc.player.playerScreenHandler.syncId, i, selectedSlot, SlotActionType.SWAP, mc.player);
                                             }
                                         }
