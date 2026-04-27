@@ -2,21 +2,17 @@ import org.gradle.api.file.DuplicatesStrategy
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    id("fabric-loom")
+    id("fabric-loom") version "1.14-SNAPSHOT"
     id("com.gradleup.shadow") version "9.0.0-beta12"
 }
 
-val minecraftVersion = stonecutter.current.version
+val minecraftVersion = project.property("minecraft_version") as String
 val yarnMappings = project.property("yarn_mappings") as String
 val loaderVersion = project.property("loader_version") as String
+val meteorVersion = project.property("meteor_version") as String
+val baritoneVersion = project.property("baritone_version") as String
 val modVersion = project.property("mod.version") as String
 val mavenGroup = project.property("maven_group") as String
-val baritoneVersion = "1.21.11"
-
-val meteorVersion = when (minecraftVersion) {
-    "1.21.9" -> "1.21.10"
-    else -> minecraftVersion
-}
 
 base {
     archivesName = project.property("archives_base_name") as String

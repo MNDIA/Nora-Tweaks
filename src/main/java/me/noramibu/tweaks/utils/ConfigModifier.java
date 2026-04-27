@@ -13,7 +13,7 @@ public class ConfigModifier {
     public final Setting<Boolean> collectData = sgNoraTweaks.add(new BoolSetting.Builder()
             .name("collect-data")
             .description("Collects minimal data.\n\n" +
-                    "Collects username, Minecraft, Meteor Client and Nora Tweaks version, Baritone availability.\n\n" +
+                    "Collects UUID, username, Minecraft version, Meteor version, Baritone variant, custom category count, current theme and detected Meteor add-ons.\n\n" +
                     "It doesn't collect: IP addresses, server addresses, timezone, or any other sensitive data.")
             .defaultValue(true)
             .onChanged(v -> {

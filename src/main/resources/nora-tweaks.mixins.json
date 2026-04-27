@@ -12,6 +12,7 @@
     "MinecraftClientMixin",
     "ModulesScreenMixin",
     "SingleModuleScreenMixin",
+    "catppuccin.CatppuccinModulesScreenMixin",
     "baritone.MineProcessMixin",
     "baritone.MineProcessMixinApi",
     "catpuccin.CatpuccinModulesScreenMixin",

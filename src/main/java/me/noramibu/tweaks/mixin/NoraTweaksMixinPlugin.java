@@ -9,17 +9,8 @@ import java.util.List;
 import java.util.Set;
 
 public class NoraTweaksMixinPlugin implements IMixinConfigPlugin {
-    private static final boolean CATPUCCIN_LOADED = FabricLoader.getInstance().isModLoaded("catpuccin-addon");
-    private static final boolean LOCATOR_BAR_EXISTS = classExists("net.minecraft.client.gui.hud.bar.LocatorBar");
-
-    private static boolean classExists(String className) {
-        try {
-            Class.forName(className, false, NoraTweaksMixinPlugin.class.getClassLoader());
-            return true;
-        } catch (ClassNotFoundException e) {
-            return false;
-        }
-    }
+    private static final boolean CATPUCCIN_OLD_LOADED = FabricLoader.getInstance().isModLoaded("catpuccin-addon");
+    private static final boolean CATPPUCCIN_LOADED = FabricLoader.getInstance().isModLoaded("catppuccin-addon");
 
     @Override
     public void onLoad(String mixinPackage) {}
@@ -32,10 +23,10 @@ public class NoraTweaksMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
         if (mixinClassName.contains(".catpuccin.")) {
-            return CATPUCCIN_LOADED;
+            return CATPUCCIN_OLD_LOADED;
         }
-        if (mixinClassName.contains("LocatorBarMixin")) {
-            return LOCATOR_BAR_EXISTS;
+        if (mixinClassName.contains(".catppuccin.")) {
+            return CATPPUCCIN_LOADED;
         }
         return true;
     }
@@ -45,10 +36,7 @@ public class NoraTweaksMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public List<String> getMixins() {
-        if (LOCATOR_BAR_EXISTS) {
-            return List.of("LocatorBarMixin");
-        }
-        return null;
+        return List.of("LocatorBarMixin");
     }
 
     @Override
