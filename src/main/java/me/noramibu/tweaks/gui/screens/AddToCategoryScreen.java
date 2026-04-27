@@ -10,7 +10,7 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WCheckbox;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 public class AddToCategoryScreen extends WindowScreen {
     private final Module module;
@@ -44,13 +44,14 @@ public class AddToCategoryScreen extends WindowScreen {
     }
 
     @EventHandler
+    @SuppressWarnings("unused")
     private void onCategoriesChanged(CustomCategoriesChangedEvent event) {
-        MinecraftClient.getInstance().execute(this::buildTable);
+        Minecraft.getInstance().execute(this::buildTable);
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         MeteorClient.EVENT_BUS.unsubscribe(this);
-        super.close();
+        super.onClose();
     }
 }

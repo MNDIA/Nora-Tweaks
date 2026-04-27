@@ -10,32 +10,28 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
-import cubitect.Cubiomes;
-import cubitect.Cubiomes.Pos;
 import me.noramibu.tweaks.utils.WorldGenUtils;
 import me.noramibu.tweaks.utils.Seeds;
 import me.noramibu.tweaks.utils.Seeds.Seed;
 import meteordevelopment.meteorclient.commands.Command;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
-import net.minecraft.command.CommandSource;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-
-import java.util.Arrays;
-import java.util.Locale;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.world.phys.Vec3;
 
 public class LocateCommand extends Command {
     private static final DynamicCommandExceptionType NOT_FOUND = new DynamicCommandExceptionType(o -> {
-        if (o instanceof Cubiomes.StructureType type) {
-            return Text.literal(String.format("%s not found.", Utils.nameToTitle(type.toString().replace('_', '-'))));
+        if (o instanceof WorldGenUtils.Structure type) {
+            return Component.literal(String.format("%s not found.", Utils.nameToTitle(type.commandName.replace('_', '-'))));
         }
-        return Text.literal("Not found.");
+        return Component.literal("Not found.");
     });
     private static final DynamicCommandExceptionType INVALID_FEATURE = new DynamicCommandExceptionType(o ->
-        Text.literal(String.format("%s is not a valid feature.", o))
+        Component.literal(String.format("%s is not a valid feature.", o))
     );
 
     public LocateCommand() {
@@ -43,39 +39,28 @@ public class LocateCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<CommandSource> builder) {
+    public void build(LiteralArgumentBuilder<ClientSuggestionProvider> builder) {
         builder.then(literal("feature")
             .then(argument("feature", StringArgumentType.word())
-                .suggests((ctx, builder1) -> CommandSource.suggestMatching(
-                    Arrays.stream(Cubiomes.StructureType.values())
-                        .map(type -> type.name().toLowerCase(Locale.ROOT)),
+                .suggests((ctx, builder1) -> SharedSuggestionProvider.suggest(
+                    WorldGenUtils.structureNames(),
                     builder1
                 ))
                 .executes(ctx -> {
-                    Cubiomes.StructureType feature = parseFeature(StringArgumentType.getString(ctx, "feature"));
+                    WorldGenUtils.Structure feature = parseFeature(StringArgumentType.getString(ctx, "feature"));
                 if (mc.player == null) return SINGLE_SUCCESS;
 
-                BlockPos playerPos = mc.player.getBlockPos();
+                BlockPos playerPos = mc.player.blockPosition();
                 Seed seed = Seeds.get().getSeed();
                 if (seed == null) throw NOT_FOUND.create(feature);
 
-                Cubiomes.MCVersion cubiomesVersion = seed.version;
-                Pos pos;
-                if (cubiomesVersion != null) {
-                    pos = Cubiomes.GetNearestStructure(feature, playerPos.getX(), playerPos.getZ(), seed.seed, cubiomesVersion);
-                } else {
-                    BlockPos fallback = WorldGenUtils.locateFeature(feature, playerPos);
-                    if (fallback == null) throw NOT_FOUND.create(feature);
-                    pos = new Pos();
-                    pos.x = fallback.getX();
-                    pos.z = fallback.getZ();
-                }
+                BlockPos located = WorldGenUtils.locateNearestStructure(feature, playerPos, seed);
+                if (located == null) located = WorldGenUtils.locateFeature(feature, playerPos);
+                if (located == null) throw NOT_FOUND.create(feature);
 
-                if (pos == null) throw NOT_FOUND.create(feature);
-
-                int distance = (int) Math.hypot(pos.x - playerPos.getX(), pos.z - playerPos.getZ());
-                MutableText text = Text.literal(String.format("%s located at ", Utils.nameToTitle(feature.toString().replace('_', '-'))));
-                text.append(ChatUtils.formatCoords(new Vec3d(pos.x, 0, pos.z)));
+                int distance = (int) Math.hypot(located.getX() - playerPos.getX(), located.getZ() - playerPos.getZ());
+                MutableComponent text = Component.literal(String.format("%s located at ", Utils.nameToTitle(feature.commandName.replace('_', '-'))));
+                text.append(ChatUtils.formatCoords(new Vec3(located.getX(), 0, located.getZ())));
                 text.append(".");
                 if (distance > 0) {
                     text.append(String.format(" (%d blocks away)", distance));
@@ -85,12 +70,9 @@ public class LocateCommand extends Command {
             })));
     }
 
-    // No mapping needed; Seeds stores Cubiomes.MCVersion directly
-
-    private static Cubiomes.StructureType parseFeature(String input) throws CommandSyntaxException {
-        for (Cubiomes.StructureType type : Cubiomes.StructureType.values()) {
-            if (type.name().equalsIgnoreCase(input)) return type;
-        }
+    private static WorldGenUtils.Structure parseFeature(String input) throws CommandSyntaxException {
+        WorldGenUtils.Structure structure = WorldGenUtils.parseStructure(input);
+        if (structure != null) return structure;
         throw INVALID_FEATURE.create(input);
     }
 }

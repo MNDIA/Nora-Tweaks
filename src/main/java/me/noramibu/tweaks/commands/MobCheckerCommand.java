@@ -4,13 +4,13 @@ import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import meteordevelopment.meteorclient.commands.Command;
-import net.minecraft.command.CommandSource;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.passive.PassiveEntity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +24,7 @@ public class MobCheckerCommand extends Command {
 	}
 
 	@Override
-	public void build(LiteralArgumentBuilder<CommandSource> builder) {
+	public void build(LiteralArgumentBuilder<ClientSuggestionProvider> builder) {
 		builder.executes(ctx -> {
 			runCheck(DEFAULT_RANGE, null);
 			return SINGLE_SUCCESS;
@@ -53,27 +53,27 @@ public class MobCheckerCommand extends Command {
 	}
 
 	private void runCheck(int range, String mobTypeFilter) {
-		if (mc.player == null || mc.world == null) return;
+		if (mc.player == null || mc.level == null) return;
 
 		Map<String, Integer> entityCounts = new HashMap<>();
 		final int rangeSq = range * range;
 		final String filterLower = (mobTypeFilter == null || mobTypeFilter.isEmpty()) ? null : mobTypeFilter.toLowerCase();
 
 		//? if >=1.21.9 {
-		Vec3d center = mc.player.getEntityPos();
+		Vec3 center = mc.player.position();
 		//?} else
 		/*Vec3d center = mc.player.getPos();*/
-		Box box = Box.of(center, range * 2.0, range * 2.0, range * 2.0);
+		AABB box = AABB.ofSize(center, range * 2.0, range * 2.0, range * 2.0);
 
-		mc.world.getOtherEntities(null, box, entity -> true).forEach(entity -> {
-			if (entity.squaredDistanceTo(mc.player) > (double) rangeSq) return;
+		mc.level.getEntities((Entity) null, box, entity -> true).forEach(entity -> {
+			if (entity.distanceToSqr(mc.player) > (double) rangeSq) return;
 			if (filterLower != null) {
-				Identifier entityTypeId = EntityType.getId(entity.getType());
+				Identifier entityTypeId = EntityType.getKey(entity.getType());
 				if (entityTypeId == null || !entityTypeId.getPath().toLowerCase().contains(filterLower)) return;
 			}
 
-			String name = entity.getType().getName().getString();
-			if (entity instanceof PassiveEntity && ((PassiveEntity) entity).isBaby()) name += " (Baby)";
+			String name = entity.getType().getDescription().getString();
+			if (entity instanceof AgeableMob && ((AgeableMob) entity).isBaby()) name += " (Baby)";
 			entityCounts.merge(name, 1, Integer::sum);
 		});
 

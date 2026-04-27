@@ -15,8 +15,7 @@
     "catppuccin.CatppuccinModulesScreenMixin",
     "baritone.MineProcessMixin",
     "baritone.MineProcessMixinApi",
-    "catpuccin.CatpuccinModulesScreenMixin",
-    "rejects.MeteorRejectsAddonMixin"
+    "catpuccin.CatpuccinModulesScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

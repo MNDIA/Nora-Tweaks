@@ -6,24 +6,25 @@
  */
 package me.noramibu.tweaks.utils;
 
-import cubitect.Cubiomes;
+import dev.xpple.cubiomes.Cubiomes;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.systems.System;
 import meteordevelopment.meteorclient.utils.Utils;
-import net.minecraft.client.network.ServerInfo;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.multiplayer.ServerData;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import java.util.HashMap;
+import java.util.Locale;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class Seeds extends System<Seeds> {
     private static final Seeds INSTANCE = new Seeds();
+    private static final String DEFAULT_CUBIOMES_VERSION = "MC_1_21_11";
 
     public final HashMap<String, Seed> seeds = new HashMap<>();
 
@@ -40,9 +41,9 @@ public class Seeds extends System<Seeds> {
     public Seed getSeed() {
         if (mc == null) return null;
 
-        if (mc.isIntegratedServerRunning()) {
-            if (mc.getServer() != null && mc.getServer().getOverworld() != null) {
-                return new Seed(mc.getServer().getOverworld().getSeed(), resolveCubiomesVersion());
+        if (mc.hasSingleplayerServer()) {
+            if (mc.getSingleplayerServer() != null && mc.getSingleplayerServer().overworld() != null) {
+                return new Seed(mc.getSingleplayerServer().overworld().getSeed(), resolveCubiomesVersion());
             }
             return null;
         }
@@ -56,15 +57,15 @@ public class Seeds extends System<Seeds> {
     }
 
     public void setSeed(String rawSeed) {
-        if (mc == null || mc.isIntegratedServerRunning()) return;
+        if (mc == null || mc.hasSingleplayerServer()) return;
 
-        ServerInfo server = mc.getCurrentServerEntry();
+        ServerData server = mc.getCurrentServer();
         String verStr = server != null && server.version != null ? server.version.getString() : "unknown";
         setSeed(rawSeed, resolveCubiomesVersion(verStr));
     }
 
-    public void setSeed(String rawSeed, Cubiomes.MCVersion version) {
-        if (mc == null || mc.isIntegratedServerRunning()) return;
+    public void setSeed(String rawSeed, String version) {
+        if (mc == null || mc.hasSingleplayerServer()) return;
 
         String worldName = Utils.getWorldName();
         if (worldName == null) return;
@@ -83,8 +84,8 @@ public class Seeds extends System<Seeds> {
     }
 
     @Override
-    public NbtCompound toTag() {
-        NbtCompound tag = new NbtCompound();
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
         seeds.forEach((key, seed) -> {
             if (seed != null) {
                 tag.put(key, seed.toTag());
@@ -94,8 +95,8 @@ public class Seeds extends System<Seeds> {
     }
 
     @Override
-    public Seeds fromTag(NbtCompound tag) {
-        for (String key : tag.getKeys()) {
+    public Seeds fromTag(CompoundTag tag) {
+        for (String key : tag.keySet()) {
             //? if >=1.21.5 {
             tag.getCompound(key).ifPresent(nbt -> seeds.put(key, Seed.fromTag(nbt)));
             //?} else {
@@ -117,21 +118,25 @@ public class Seeds extends System<Seeds> {
 
     public static final class Seed {
         public final long seed;
-        public final Cubiomes.MCVersion version;
+        public final String version;
 
-        public Seed(long seed, Cubiomes.MCVersion version) {
+        public Seed(long seed, String version) {
             this.seed = seed;
-            this.version = version == null ? resolveCubiomesVersion() : version;
+            this.version = resolveStoredVersion(version);
         }
 
-        public NbtCompound toTag() {
-            NbtCompound tag = new NbtCompound();
+        public int cubiomesVersionId() {
+            return resolveCubiomesVersionId(version);
+        }
+
+        public CompoundTag toTag() {
+            CompoundTag tag = new CompoundTag();
             tag.putLong("seed", seed);
-            tag.putString("version", version.name());
+            tag.putString("version", version);
             return tag;
         }
 
-        public static Seed fromTag(NbtCompound tag) {
+        public static Seed fromTag(CompoundTag tag) {
             //? if >=1.21.5 {
             long storedSeed = tag.getLong("seed").orElse(0L);
             String versionName = tag.getString("version").orElse("");
@@ -140,22 +145,22 @@ public class Seeds extends System<Seeds> {
             String versionName = tag.getString("version");
             */
             //?}
-            Cubiomes.MCVersion storedVersion = parseCubiomesVersion(versionName);
+            String storedVersion = resolveStoredVersion(versionName);
             return new Seed(storedSeed, storedVersion);
         }
 
-        public Text toText() {
-            MutableText text = Text.literal(String.format("[%s%s%s] (%s)",
-                Formatting.GREEN,
+        public Component toText() {
+            MutableComponent text = Component.literal(String.format("[%s%s%s] (%s)",
+                ChatFormatting.GREEN,
                 Long.toString(seed),
-                Formatting.WHITE,
-                version.name()
+                ChatFormatting.WHITE,
+                version
             ));
 
             //? if >=1.21.5 {
             text.setStyle(text.getStyle()
                 .withClickEvent(new ClickEvent.CopyToClipboard(Long.toString(seed)))
-                .withHoverEvent(new HoverEvent.ShowText(Text.literal("Copy to clipboard"))));
+                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Copy to clipboard"))));
             //?} else {
             /*text.setStyle(text.getStyle()
                 .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, Long.toString(seed)))
@@ -178,24 +183,50 @@ public class Seeds extends System<Seeds> {
         }
     }
 
-    private static Cubiomes.MCVersion resolveCubiomesVersion() {
-        return Cubiomes.MCVersion.MC_1_21_WD;
+    public static String getDefaultCubiomesVersion() {
+        return DEFAULT_CUBIOMES_VERSION;
     }
 
-    private static Cubiomes.MCVersion resolveCubiomesVersion(String gameVer) {
-        return Cubiomes.MCVersion.MC_1_21_WD;
+    private static String resolveCubiomesVersion() {
+        return DEFAULT_CUBIOMES_VERSION;
     }
 
-    private static Cubiomes.MCVersion parseCubiomesVersion(String input) {
-        if (input == null || input.isEmpty()) return resolveCubiomesVersion();
-        String norm = input.trim().toUpperCase();
+    private static String resolveCubiomesVersion(String gameVer) {
+        String parsed = resolveForPublic(gameVer);
+        return parsed != null ? parsed : resolveCubiomesVersion();
+    }
+
+    private static String resolveStoredVersion(String input) {
+        String parsed = resolveForPublic(input);
+        return parsed != null ? parsed : resolveCubiomesVersion();
+    }
+
+    private static int resolveCubiomesVersionId(String versionName) {
+        String resolved = resolveStoredVersion(versionName);
         try {
-            return Cubiomes.MCVersion.valueOf(norm);
-        } catch (IllegalArgumentException ignored) {}
-        return resolveCubiomesVersion();
+            return (int) Cubiomes.class.getMethod(resolved).invoke(null);
+        } catch (ReflectiveOperationException ignored) {
+            return Cubiomes.MC_1_21_11();
+        }
     }
 
-    public static Cubiomes.MCVersion resolveForPublic(String input) {
-        return parseCubiomesVersion(input);
+    public static String resolveForPublic(String input) {
+        if (input == null || input.isBlank()) return null;
+
+        String norm = input.trim()
+            .toUpperCase(Locale.ROOT)
+            .replace('-', '_')
+            .replace(' ', '_');
+
+        if (norm.matches("\\d+(\\.\\d+)+")) {
+            norm = "MC_" + norm.replace('.', '_');
+        }
+
+        try {
+            Cubiomes.class.getMethod(norm);
+            return norm;
+        } catch (NoSuchMethodException ignored) {
+            return null;
+        }
     }
 }

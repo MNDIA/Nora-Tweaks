@@ -6,15 +6,14 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.item.HoeItem;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.HoeItem;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
@@ -104,30 +103,30 @@ public class AutoFarmLand extends Module {
 
     @EventHandler
     private void onTick(TickEvent.Pre event) {
-        if (!(mc.player.getMainHandStack().getItem() instanceof HoeItem)) {
+        if (!(mc.player.getMainHandItem().getItem() instanceof HoeItem)) {
             return;
         }
 
-        if (requireOnClick.get() && !mc.options.useKey.isPressed()) {
+        if (requireOnClick.get() && !mc.options.keyUse.isDown()) {
             return;
         }
 
         if (targetBlocks.isEmpty()) return;
 
         final double rangeSq = range.get() * range.get();
-        BlockPos.stream(mc.player.getBoundingBox().expand(range.get()))
-            .map(BlockPos::toImmutable)
-            .filter(bp -> targetBlocks.contains(mc.world.getBlockState(bp).getBlock()))
+        BlockPos.betweenClosedStream(mc.player.getBoundingBox().inflate(range.get()))
+            .map(BlockPos::immutable)
+            .filter(bp -> targetBlocks.contains(mc.level.getBlockState(bp).getBlock()))
             .filter(bp -> {
                 //? if >=1.21.9 {
-                return mc.player.getEntityPos().squaredDistanceTo(Vec3d.ofCenter(bp)) <= rangeSq;
+                return mc.player.position().distanceToSqr(Vec3.atCenterOf(bp)) <= rangeSq;
                 //?} else
                 /*return mc.player.getPos().squaredDistanceTo(Vec3d.ofCenter(bp)) <= rangeSq;
                 */
             })
             .sorted(Comparator.comparing(bp -> {
                 //? if >=1.21.9 {
-                return mc.player.getEntityPos().distanceTo(Vec3d.ofCenter(bp));
+                return mc.player.position().distanceTo(Vec3.atCenterOf(bp));
                 //?} else
                 /*return mc.player.getPos().distanceTo(Vec3d.ofCenter(bp));
                 */
@@ -138,10 +137,10 @@ public class AutoFarmLand extends Module {
 
     private void turnToFarmland(BlockPos blockPos) {
         Runnable action = () -> {
-            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND, new BlockHitResult(
-                Vec3d.ofCenter(blockPos), Direction.UP, blockPos, false
+            mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND, new BlockHitResult(
+                Vec3.atCenterOf(blockPos), Direction.UP, blockPos, false
             ));
-            mc.player.swingHand(Hand.MAIN_HAND);
+            mc.player.swing(InteractionHand.MAIN_HAND);
         };
 
         if (rotate.get()) {

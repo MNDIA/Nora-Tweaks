@@ -16,15 +16,14 @@ import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
-
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 import java.util.*;
 
 public class AutoTrapPlus extends Module {
@@ -131,7 +130,7 @@ public class AutoTrapPlus extends Module {
     );
 
     private final List<BlockPos> placePositions = new ArrayList<>();
-    private PlayerEntity target;
+    private Player target;
     private boolean placedAny;
     private int timer;
     private BlockPos gapFeetPos;
@@ -163,7 +162,7 @@ public class AutoTrapPlus extends Module {
         }
 
         // Find blocks in hotbar
-        FindItemResult block = InvUtils.findInHotbar(itemStack -> blocks.get().contains(Block.getBlockFromItem(itemStack.getItem())));
+        FindItemResult block = InvUtils.findInHotbar(itemStack -> blocks.get().contains(Block.byItem(itemStack.getItem())));
         if (!block.found()) return;
 
         // Find target
@@ -176,8 +175,8 @@ public class AutoTrapPlus extends Module {
         gapFeetPos = null;
         if (gapSide.get() != GapSide.None) {
             int feetY = (int) Math.floor(target.getBoundingBox().minY);
-            BlockPos center = BlockPos.ofFloored(target.getX(), feetY, target.getZ());
-            gapFeetPos = center.add(getGapOffsetX(target), 0, getGapOffsetZ(target));
+            BlockPos center = BlockPos.containing(target.getX(), feetY, target.getZ());
+            gapFeetPos = center.offset(getGapOffsetX(target), 0, getGapOffsetZ(target));
         }
 
         // Compute trap positions
@@ -203,30 +202,30 @@ public class AutoTrapPlus extends Module {
 
         // Need a neighbor face; first try direct
         if (BlockUtils.getPlaceSide(placePos) != null) return BlockUtils.place(placePos, block, rotate.get(), 50, true);
-        if (!mc.world.getBlockState(placePos).isReplaceable()) return false;
+        if (!mc.level.getBlockState(placePos).canBeReplaced()) return false;
 
         // Build candidate directions with outward first, then others
-        net.minecraft.util.math.Direction outward = net.minecraft.util.math.Direction.NORTH;
+        net.minecraft.core.Direction outward = net.minecraft.core.Direction.NORTH;
         if (target != null) {
-            BlockPos center = BlockPos.ofFloored(target.getX(), Math.floor(target.getBoundingBox().minY), target.getZ());
+            BlockPos center = BlockPos.containing(target.getX(), Math.floor(target.getBoundingBox().minY), target.getZ());
             int dx = placePos.getX() - center.getX();
             int dz = placePos.getZ() - center.getZ();
-            if (Math.abs(dx) >= Math.abs(dz)) outward = dx > 0 ? net.minecraft.util.math.Direction.EAST : net.minecraft.util.math.Direction.WEST;
-            else outward = dz > 0 ? net.minecraft.util.math.Direction.SOUTH : net.minecraft.util.math.Direction.NORTH;
+            if (Math.abs(dx) >= Math.abs(dz)) outward = dx > 0 ? net.minecraft.core.Direction.EAST : net.minecraft.core.Direction.WEST;
+            else outward = dz > 0 ? net.minecraft.core.Direction.SOUTH : net.minecraft.core.Direction.NORTH;
         }
 
-        net.minecraft.util.math.Direction[] dirs = new net.minecraft.util.math.Direction[] {
+        net.minecraft.core.Direction[] dirs = new net.minecraft.core.Direction[] {
             outward,
-            outward.rotateYClockwise(),
-            outward.rotateYCounterclockwise(),
+            outward.getClockWise(),
+            outward.getCounterClockWise(),
             outward.getOpposite()
         };
 
         // Optimize supports: place exactly one side support adjacent to target, preferring outward first
-        for (net.minecraft.util.math.Direction d : dirs) {
-            BlockPos s = placePos.offset(d);
+        for (net.minecraft.core.Direction d : dirs) {
+            BlockPos s = placePos.relative(d);
             // don't block the feet gap column
-            if (gapFeetPos != null && s.down().equals(gapFeetPos)) continue;
+            if (gapFeetPos != null && s.below().equals(gapFeetPos)) continue;
             if (BlockUtils.getPlaceSide(s) == null) continue;
             if (BlockUtils.place(s, block, rotate.get(), 50, true)) {
                 return BlockUtils.getPlaceSide(placePos) != null && BlockUtils.place(placePos, block, rotate.get(), 50, true);
@@ -238,47 +237,47 @@ public class AutoTrapPlus extends Module {
 
     // Removed old helper methods for broad support search to keep logic minimal
 
-    private void fillPlaceArray(PlayerEntity t) {
+    private void fillPlaceArray(Player t) {
         placePositions.clear();
 
         double epsilon = 1e-5;
-        Box box = t.getBoundingBox();
+        AABB box = t.getBoundingBox();
         List<BlockPos> corners = new ArrayList<>();
-        corners.add(BlockPos.ofFloored(box.minX, box.minY, box.minZ));
-        corners.add(BlockPos.ofFloored(box.minX, box.minY, box.maxZ - epsilon));
-        corners.add(BlockPos.ofFloored(box.maxX - epsilon, box.minY, box.minZ));
-        corners.add(BlockPos.ofFloored(box.maxX - epsilon, box.minY, box.maxZ - epsilon));
+        corners.add(BlockPos.containing(box.minX, box.minY, box.minZ));
+        corners.add(BlockPos.containing(box.minX, box.minY, box.maxZ - epsilon));
+        corners.add(BlockPos.containing(box.maxX - epsilon, box.minY, box.minZ));
+        corners.add(BlockPos.containing(box.maxX - epsilon, box.minY, box.maxZ - epsilon));
 
         Set<BlockPos> overlappedPositions = new LinkedHashSet<>(corners);
         for (BlockPos base : overlappedPositions) {
             switch (topPlacement.get()) {
                 case Full -> {
-                    add(base.add(0, 2, 0));
-                    add(base.add(1, 1, 0));
-                    add(base.add(-1, 1, 0));
-                    add(base.add(0, 1, 1));
-                    add(base.add(0, 1, -1));
+                    add(base.offset(0, 2, 0));
+                    add(base.offset(1, 1, 0));
+                    add(base.offset(-1, 1, 0));
+                    add(base.offset(0, 1, 1));
+                    add(base.offset(0, 1, -1));
                 }
                 case Face -> {
-                    add(base.add(1, 1, 0));
-                    add(base.add(-1, 1, 0));
-                    add(base.add(0, 1, 1));
-                    add(base.add(0, 1, -1));
+                    add(base.offset(1, 1, 0));
+                    add(base.offset(-1, 1, 0));
+                    add(base.offset(0, 1, 1));
+                    add(base.offset(0, 1, -1));
                 }
-                case Top -> add(base.add(0, 2, 0));
+                case Top -> add(base.offset(0, 2, 0));
                 case None -> {}
             }
             // Bottom - always Full: platform below (y -1) and full ring at feet level (y 0)
-            add(base.add(0, -1, 0));
-            add(base.add(1, -1, 0));
-            add(base.add(-1, -1, 0));
-            add(base.add(0, -1, 1));
-            add(base.add(0, -1, -1));
+            add(base.offset(0, -1, 0));
+            add(base.offset(1, -1, 0));
+            add(base.offset(-1, -1, 0));
+            add(base.offset(0, -1, 1));
+            add(base.offset(0, -1, -1));
 
-            add(base.add(1, 0, 0));
-            add(base.add(-1, 0, 0));
-            add(base.add(0, 0, -1));
-            add(base.add(0, 0, 1));
+            add(base.offset(1, 0, 0));
+            add(base.offset(-1, 0, 0));
+            add(base.offset(0, 0, -1));
+            add(base.offset(0, 0, 1));
         }
 
         // Apply gap: remove only the feet-level block on the chosen side
@@ -302,11 +301,11 @@ public class AutoTrapPlus extends Module {
     }
 
     private boolean isOutOfRange(BlockPos blockPos) {
-        Vec3d pos = blockPos.toCenterPos();
+        Vec3 pos = blockPos.getCenter();
         if (!PlayerUtils.isWithin(pos, placeRange.get())) return true;
 
-        RaycastContext raycastContext = new RaycastContext(mc.player.getEyePos(), pos, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, mc.player);
-        BlockHitResult result = mc.world.raycast(raycastContext);
+        ClipContext raycastContext = new ClipContext(mc.player.getEyePosition(), pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mc.player);
+        BlockHitResult result = mc.level.clip(raycastContext);
         if (result == null || !result.getBlockPos().equals(blockPos)) return !PlayerUtils.isWithin(pos, placeWallsRange.get());
         return false;
     }
@@ -318,14 +317,14 @@ public class AutoTrapPlus extends Module {
         return EntityUtils.getName(target);
     }
 
-    private int getGapOffsetX(PlayerEntity t) {
+    private int getGapOffsetX(Player t) {
         return switch (gapSide.get()) {
             case East -> 1;
             case West -> -1;
             case South, North -> 0;
             case TowardPlayer -> {
                 //? if >=1.21.9 {
-                Vec3d toPlayer = mc.player.getEntityPos().subtract(t.getEntityPos());
+                Vec3 toPlayer = mc.player.position().subtract(t.position());
                 //?} else
                 /*Vec3d toPlayer = mc.player.getPos().subtract(t.getPos());
                 */
@@ -336,14 +335,14 @@ public class AutoTrapPlus extends Module {
         };
     }
 
-    private int getGapOffsetZ(PlayerEntity t) {
+    private int getGapOffsetZ(Player t) {
         return switch (gapSide.get()) {
             case South -> 1;
             case North -> -1;
             case East, West -> 0;
             case TowardPlayer -> {
                 //? if >=1.21.9 {
-                Vec3d toPlayer = mc.player.getEntityPos().subtract(t.getEntityPos());
+                Vec3 toPlayer = mc.player.position().subtract(t.position());
                 //?} else
                 /*Vec3d toPlayer = mc.player.getPos().subtract(t.getPos());
                 */

@@ -3,8 +3,8 @@ package me.noramibu.tweaks.mixin.baritone;
 import baritone.api.utils.BlockOptionalMetaLookup;
 import me.noramibu.tweaks.modules.OreSim;
 import meteordevelopment.meteorclient.systems.modules.Modules;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
@@ -56,7 +56,12 @@ public class MineProcessMixinApi {
             return;
         }
 
-        if (setKnownOreLocations(this, oreSim.oreGoals)) {
+        List<BlockPos> simulatedGoals = oreSim.getBaritoneGoals();
+        if (simulatedGoals.isEmpty()) {
+            return;
+        }
+
+        if (setKnownOreLocations(this, simulatedGoals)) {
             ci.cancel();
         }
     }
@@ -110,9 +115,14 @@ public class MineProcessMixinApi {
 
         fieldLookupAttempted = true;
 
+        Field firstListField = null;
         Field firstListBlockPosField = null;
         for (Field field : clazz.getDeclaredFields()) {
             if (List.class.isAssignableFrom(field.getType())) {
+                if (firstListField == null) {
+                    firstListField = field;
+                    firstListField.setAccessible(true);
+                }
                 Type genericType = field.getGenericType();
                 if (genericType instanceof ParameterizedType) {
                     Type[] typeArgs = ((ParameterizedType) genericType).getActualTypeArguments();
@@ -130,13 +140,13 @@ public class MineProcessMixinApi {
             }
         }
 
-        cachedField = firstListBlockPosField;
+        cachedField = firstListBlockPosField != null ? firstListBlockPosField : firstListField;
         return cachedField;
     }
 
     @Redirect(
         method = "*",
-        at = @At(value = "INVOKE", target = "Lbaritone/api/utils/BlockOptionalMetaLookup;has(Lnet/minecraft/block/BlockState;)Z"),
+        at = @At(value = "INVOKE", target = "Lbaritone/api/utils/BlockOptionalMetaLookup;has(Lnet/minecraft/world/level/block/state/BlockState;)Z"),
         remap = false,
         require = 0
     )

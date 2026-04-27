@@ -14,21 +14,21 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.component.type.AttributeModifierSlot;
-import net.minecraft.enchantment.Enchantments;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.AxeItem;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.MaceItem;
-import net.minecraft.item.TridentItem;
-import net.minecraft.registry.tag.EntityTypeTags;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.util.hit.HitResult;
+import net.minecraft.tags.EntityTypeTags;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.MaceItem;
+import net.minecraft.world.item.TridentItem;
+import net.minecraft.world.item.enchantment.Enchantments;
+import net.minecraft.world.phys.HitResult;
 
 public class AttributeSwapping extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -287,7 +287,7 @@ public class AttributeSwapping extends Module {
     @EventHandler
     private void onAttack(DoAttackEvent event) {
         if (!canSwapByWeapon() || mode.get() == Mode.Smart || !swapOnMiss.get()) return;
-        if (mc.crosshairTarget.getType() == HitResult.Type.BLOCK) return;
+        if (mc.hitResult.getType() == HitResult.Type.BLOCK) return;
 
         doSwap(targetSlot.get() - 1);
     }
@@ -335,18 +335,18 @@ public class AttributeSwapping extends Module {
     private boolean canSwapByWeapon() {
         if (!onlyOnWeapon.get()) return true;
         return InvUtils.testInMainHand(item ->
-            (sword.get() && item.isIn(ItemTags.SWORDS)) ||
-                (axe.get() && item.isIn(ItemTags.AXES)) ||
-                (pickaxe.get() && item.isIn(ItemTags.PICKAXES)) ||
-                (shovel.get() && item.isIn(ItemTags.SHOVELS)) ||
-                (hoe.get() && item.isIn(ItemTags.HOES)) ||
+            (sword.get() && item.is(ItemTags.SWORDS)) ||
+                (axe.get() && item.is(ItemTags.AXES)) ||
+                (pickaxe.get() && item.is(ItemTags.PICKAXES)) ||
+                (shovel.get() && item.is(ItemTags.SHOVELS)) ||
+                (hoe.get() && item.is(ItemTags.HOES)) ||
                 (mace.get() && item.getItem() instanceof MaceItem) ||
                 (trident.get() && item.getItem() instanceof TridentItem)
         );
     }
 
     private int getSmartSlot(Entity target) {
-        ItemStack currentStack = mc.player.getMainHandStack();
+        ItemStack currentStack = mc.player.getMainHandItem();
 
         if (target != null && smartShieldBreak.get() && target instanceof LivingEntity living && living.isBlocking()) {
             if (currentStack.getItem() instanceof AxeItem) return -1;
@@ -358,13 +358,13 @@ public class AttributeSwapping extends Module {
         boolean durability = smartDurability.get();
 
         boolean isLiving = target instanceof LivingEntity;
-        boolean isPlayer = target instanceof PlayerEntity;
+        boolean isPlayer = target instanceof Player;
         boolean isOnFire = target != null && target.isOnFire();
-        boolean isUndead = target != null && target.getType().isIn(EntityTypeTags.SENSITIVE_TO_SMITE);
-        boolean isArthropod = target != null && target.getType().isIn(EntityTypeTags.SENSITIVE_TO_BANE_OF_ARTHROPODS);
-        boolean isAquatic = target != null && target.getType().isIn(EntityTypeTags.SENSITIVE_TO_IMPALING);
-        boolean hasFireResistance = isLiving && (((LivingEntity) target).hasStatusEffect(StatusEffects.FIRE_RESISTANCE) || hasFireProtectionArmor((LivingEntity) target));
-        double armor = isLiving ? ((LivingEntity) target).getAttributeValue(EntityAttributes.ARMOR) : 0;
+        boolean isUndead = target != null && target.typeHolder().is(EntityTypeTags.SENSITIVE_TO_SMITE);
+        boolean isArthropod = target != null && target.typeHolder().is(EntityTypeTags.SENSITIVE_TO_BANE_OF_ARTHROPODS);
+        boolean isAquatic = target != null && target.typeHolder().is(EntityTypeTags.SENSITIVE_TO_IMPALING);
+        boolean hasFireResistance = isLiving && (((LivingEntity) target).hasEffect(MobEffects.FIRE_RESISTANCE) || hasFireProtectionArmor((LivingEntity) target));
+        double armor = isLiving ? ((LivingEntity) target).getAttributeValue(Attributes.ARMOR) : 0;
         float health = isLiving ? ((LivingEntity) target).getHealth() : 0;
 
         int bestSlot = -1;
@@ -377,7 +377,7 @@ public class AttributeSwapping extends Module {
             /*if (i == mc.player.getInventory().selectedSlot) continue;
             */
 
-            ItemStack stack = mc.player.getInventory().getStack(i);
+            ItemStack stack = mc.player.getInventory().getItem(i);
             if (stack.isEmpty() && !durability) continue;
 
             double score = getItemScore(stack, isFalling, durability, isLiving, isPlayer, isOnFire, hasFireResistance, isUndead, isArthropod, isAquatic, armor, health);
@@ -405,7 +405,7 @@ public class AttributeSwapping extends Module {
     }
 
     private double getDurabilityScore(ItemStack stack) {
-        if (!stack.isDamageable()) return 4;
+        if (!stack.isDamageableItem()) return 4;
 
         int unbreaking = Utils.getEnchantmentLevel(stack, Enchantments.UNBREAKING);
         if (unbreaking > 0) return unbreaking * 0.05;
@@ -533,8 +533,8 @@ public class AttributeSwapping extends Module {
 
     private boolean hasFireProtectionArmor(LivingEntity entity) {
         //? if >=1.21.5 {
-        for (EquipmentSlot slot : AttributeModifierSlot.ARMOR) {
-            ItemStack stack = entity.getEquippedStack(slot);
+        for (EquipmentSlot slot : EquipmentSlotGroup.ARMOR) {
+            ItemStack stack = entity.getItemBySlot(slot);
             if (stack.isEmpty()) continue;
 
             int fireProtection = Utils.getEnchantmentLevel(stack, Enchantments.FIRE_PROTECTION);

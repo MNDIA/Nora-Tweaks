@@ -9,14 +9,11 @@ import meteordevelopment.meteorclient.gui.widgets.WKeybind;
 import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.input.WIntEdit;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import meteordevelopment.meteorclient.gui.widgets.input.WDropdown;
-//? if >=1.21.9 {
-import net.minecraft.client.gui.Click;
-import net.minecraft.client.input.KeyInput;
-//?}
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,7 +85,7 @@ public class EditHotkeyScreen extends WindowScreen {
             if (this.parent instanceof HotkeysScreen s) {
                 s.reload();
             }
-            close();
+            onClose();
         };
     }
 
@@ -116,7 +113,7 @@ public class EditHotkeyScreen extends WindowScreen {
                 WButton getInfoButton = theme.button("Get from Main Hand");
                 getInfoButton.action = () -> {
                     if (mc.player != null) {
-                        ItemStack stack = mc.player.getMainHandStack();
+                        ItemStack stack = mc.player.getMainHandItem();
                         if (!stack.isEmpty()) {
                             hotkey.fromItemStack(stack);
                             itemWidget.set(hotkey.toItemStack());
@@ -152,7 +149,7 @@ public class EditHotkeyScreen extends WindowScreen {
 
     //? if >=1.21.9 {
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
+    public boolean mouseClicked(MouseButtonEvent click, boolean doubled) {
         for (WKeybind w : keybindWidgets) {
             if (w.onAction(false, click.buttonInfo().button(), 0)) return true;
         }
@@ -160,7 +157,7 @@ public class EditHotkeyScreen extends WindowScreen {
     }
 
     @Override
-    public boolean keyPressed(KeyInput input) {
+    public boolean keyPressed(KeyEvent input) {
         for (WKeybind w : keybindWidgets) {
             if (w.onAction(true, input.key(), input.modifiers())) return true;
         }

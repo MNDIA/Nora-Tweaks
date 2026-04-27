@@ -3,7 +3,7 @@ package me.noramibu.tweaks.commands;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import meteordevelopment.meteorclient.commands.Command;
-import net.minecraft.command.CommandSource;
+import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 
 public class CalculatorCommand extends Command {
     public CalculatorCommand() {
@@ -11,7 +11,7 @@ public class CalculatorCommand extends Command {
     }
 
     @Override
-    public void build(LiteralArgumentBuilder<CommandSource> builder) {
+    public void build(LiteralArgumentBuilder<ClientSuggestionProvider> builder) {
         builder.executes(ctx -> {
             error("Usage: .calculator <expression>");
             return SINGLE_SUCCESS;

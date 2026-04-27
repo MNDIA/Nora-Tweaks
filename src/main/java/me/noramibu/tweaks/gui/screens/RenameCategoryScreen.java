@@ -32,7 +32,7 @@ public class RenameCategoryScreen extends WindowScreen {
             String newName = nameBox.get().trim();
             if (!newName.isEmpty() && !newName.equals(category.name)) {
                 CustomCategoryManager.renameCategory(category, newName);
-                this.close();
+                this.onClose();
             }
         };
     }

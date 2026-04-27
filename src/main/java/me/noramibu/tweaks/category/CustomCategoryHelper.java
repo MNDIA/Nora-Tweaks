@@ -10,8 +10,7 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WContainer;
 import meteordevelopment.meteorclient.gui.widgets.containers.WWindow;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -68,7 +67,8 @@ public class CustomCategoryHelper {
     }
 
     @EventHandler
+    @SuppressWarnings("unused")
     private void onCategoriesChanged(CustomCategoriesChangedEvent event) {
-        MinecraftClient.getInstance().execute(this::refresh);
+        Minecraft.getInstance().execute(this::refresh);
     }
 }

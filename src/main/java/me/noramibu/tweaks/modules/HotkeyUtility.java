@@ -8,15 +8,14 @@ import me.noramibu.tweaks.gui.screens.HotkeysScreen;
 import me.noramibu.tweaks.utils.Hotkey;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.GameLeftEvent;
-import meteordevelopment.meteorclient.events.meteor.KeyEvent;
+import meteordevelopment.meteorclient.events.meteor.KeyInputEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.gui.GuiTheme;
 import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.screen.slot.SlotActionType;
-
+import net.minecraft.world.inventory.ContainerInput;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -107,7 +106,7 @@ public class HotkeyUtility extends Module {
     }
 
     @EventHandler
-    private void onKeyPress(KeyEvent event) {
+    private void onKeyPress(KeyInputEvent event) {
         if (event.action != Press) return;
 
         for (Hotkey hotkey : hotkeys) {
@@ -138,14 +137,14 @@ public class HotkeyUtility extends Module {
                             break;
                         case HoldItem:
                             if (mc.player != null) {
-                                for (int i = 0; i < mc.player.getInventory().size(); i++) {
-                                    if (hotkey.matches(mc.player.getInventory().getStack(i))) {
+                                for (int i = 0; i < mc.player.getInventory().getContainerSize(); i++) {
+                                    if (hotkey.matches(mc.player.getInventory().getItem(i))) {
                                         if (i < 9) { // In hotbar
                                             mc.player.getInventory().setSelectedSlot(i);
                                         } else { // In main inventory
                                             int emptyHotbarSlot = -1;
                                             for (int j = 0; j < 9; j++) {
-                                                if (mc.player.getInventory().getStack(j).isEmpty()) {
+                                                if (mc.player.getInventory().getItem(j).isEmpty()) {
                                                     emptyHotbarSlot = j;
                                                     break;
                                                 }
@@ -153,7 +152,7 @@ public class HotkeyUtility extends Module {
 
                                             if (emptyHotbarSlot != -1) {
                                                 // Move to empty hotbar slot
-                                                mc.interactionManager.clickSlot(mc.player.playerScreenHandler.syncId, i, emptyHotbarSlot, SlotActionType.SWAP, mc.player);
+                                                mc.gameMode.handleContainerInput(mc.player.inventoryMenu.containerId, i, emptyHotbarSlot, ContainerInput.SWAP, mc.player);
                                                 mc.player.getInventory().setSelectedSlot(emptyHotbarSlot);
                                             } else {
                                                 // Hotbar is full, swap with selected slot
@@ -162,7 +161,7 @@ public class HotkeyUtility extends Module {
                                                 //?} else
                                                 /*int selectedSlot = mc.player.getInventory().selectedSlot;
                                                 */
-                                                mc.interactionManager.clickSlot(mc.player.playerScreenHandler.syncId, i, selectedSlot, SlotActionType.SWAP, mc.player);
+                                                mc.gameMode.handleContainerInput(mc.player.inventoryMenu.containerId, i, selectedSlot, ContainerInput.SWAP, mc.player);
                                             }
                                         }
                                         break;

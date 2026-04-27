@@ -50,7 +50,7 @@ public class EditKeywordScreen extends WindowScreen {
             this.keyword.useRegex = useRegexBox.checked;
             this.keyword.compilePattern();
             onSave.accept(this.keyword);
-            close();
+            onClose();
         };
     }
 }

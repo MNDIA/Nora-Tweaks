@@ -4,17 +4,16 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import meteordevelopment.meteorclient.utils.misc.Keybind;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.ItemEnchantmentsComponent;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,23 +48,23 @@ public class Hotkey {
         this.presses = 1;
         this.pressDelay = 10;
         this.slot = 1;
-        this.itemIdentifier = Registries.ITEM.getId(Items.AIR);
+        this.itemIdentifier = BuiltInRegistries.ITEM.getKey(Items.AIR);
         this.customName = null;
         this.enchantments = null;
     }
 
     public void fromItemStack(ItemStack stack) {
-        this.itemIdentifier = Registries.ITEM.getId(stack.getItem());
+        this.itemIdentifier = BuiltInRegistries.ITEM.getKey(stack.getItem());
 
-        Text nameText = stack.getName();
+        Component nameText = stack.getHoverName();
         this.customName = nameText != null ? nameText.getString() : null;
 
-        ItemEnchantmentsComponent enchantmentsComponent = stack.get(DataComponentTypes.ENCHANTMENTS);
+        ItemEnchantments enchantmentsComponent = stack.get(DataComponents.ENCHANTMENTS);
         if (enchantmentsComponent != null && !enchantmentsComponent.isEmpty()) {
             List<String> enchantList = new ArrayList<>();
-            for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : enchantmentsComponent.getEnchantmentEntries()) {
-                entry.getKey().getKey().ifPresent(key -> {
-                    enchantList.add(key.getValue().toString() + "=" + entry.getIntValue());
+            for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantmentsComponent.entrySet()) {
+                entry.getKey().unwrapKey().ifPresent(key -> {
+                    enchantList.add(key.identifier().toString() + "=" + entry.getIntValue());
                 });
             }
             Collections.sort(enchantList);
@@ -78,11 +77,11 @@ public class Hotkey {
     public ItemStack toItemStack() {
         if (itemIdentifier == null) return new ItemStack(Items.AIR);
 
-        Item item = Registries.ITEM.get(itemIdentifier);
+        Item item = BuiltInRegistries.ITEM.getValue(itemIdentifier);
         ItemStack stack = new ItemStack(item);
 
         if (customName != null) {
-            stack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(customName));
+            stack.set(DataComponents.CUSTOM_NAME, Component.literal(customName));
         }
 
         return stack;
@@ -93,20 +92,20 @@ public class Hotkey {
             return otherStack == null || otherStack.isEmpty();
         }
         if (otherStack == null || otherStack.isEmpty()) {
-            return this.itemIdentifier.equals(Registries.ITEM.getId(Items.AIR));
+            return this.itemIdentifier.equals(BuiltInRegistries.ITEM.getKey(Items.AIR));
         }
 
-        if (!Registries.ITEM.getId(otherStack.getItem()).equals(this.itemIdentifier)) {
+        if (!BuiltInRegistries.ITEM.getKey(otherStack.getItem()).equals(this.itemIdentifier)) {
             return false;
         }
 
-        Text otherNameText = otherStack.getName();
+        Component otherNameText = otherStack.getHoverName();
         String otherNameString = otherNameText != null ? otherNameText.getString() : null;
         if (!Objects.equals(this.customName, otherNameString)) {
             return false;
         }
 
-        ItemEnchantmentsComponent otherEnchants = otherStack.get(DataComponentTypes.ENCHANTMENTS);
+        ItemEnchantments otherEnchants = otherStack.get(DataComponents.ENCHANTMENTS);
 
         if (this.enchantments == null) {
             return otherEnchants == null || otherEnchants.isEmpty();
@@ -115,9 +114,9 @@ public class Hotkey {
         if (otherEnchants == null || otherEnchants.isEmpty()) return false;
 
         List<String> otherEnchantList = new ArrayList<>();
-        for (Object2IntMap.Entry<RegistryEntry<Enchantment>> entry : otherEnchants.getEnchantmentEntries()) {
-            entry.getKey().getKey().ifPresent(key -> {
-                otherEnchantList.add(key.getValue().toString() + "=" + entry.getIntValue());
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : otherEnchants.entrySet()) {
+            entry.getKey().unwrapKey().ifPresent(key -> {
+                otherEnchantList.add(key.identifier().toString() + "=" + entry.getIntValue());
             });
         }
         Collections.sort(otherEnchantList);

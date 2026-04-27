@@ -8,20 +8,22 @@ import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.player.FindItemResult;
 import meteordevelopment.meteorclient.utils.player.InvUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
+import meteordevelopment.meteorclient.utils.player.SlotUtils;
+import meteordevelopment.meteorclient.utils.world.BlockUtils;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.AxeItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.tag.BlockTags;
-import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.Vec3;
 
 public class AutoLogStrip extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -131,7 +133,7 @@ public class AutoLogStrip extends Module {
 
     @EventHandler
     private void onBlockUpdate(BlockUpdateEvent event) {
-        if (mc.player == null || mc.world == null) return;
+        if (mc.player == null || mc.level == null) return;
         if (state != State.IDLE && state != State.WAITING_TO_PLACE) return;
 
         if (event.oldState.isAir() && isUnstrippedLog(event.newState)) {
@@ -142,7 +144,7 @@ public class AutoLogStrip extends Module {
                 if (chatFeedback.get()) info("First log type: " + getBlockName(event.newState.getBlock()));
             }
 
-            targetPos = event.pos.toImmutable();
+            targetPos = event.pos.immutable();
             state = State.WAITING_TO_STRIP;
             timer = stripDelay.get();
             if (chatFeedback.get()) info("Log detected, stripping in " + timer + " ticks");
@@ -151,7 +153,7 @@ public class AutoLogStrip extends Module {
 
     @EventHandler
     private void onTick(Pre event) {
-        if (mc.player == null || mc.world == null || mc.interactionManager == null) return;
+        if (mc.player == null || mc.level == null || mc.gameMode == null) return;
         if (timer-- > 0) return;
 
         switch (state) {
@@ -166,7 +168,7 @@ public class AutoLogStrip extends Module {
 
     private void handleWaitingToStrip() {
         if (!validateTarget()) return;
-        BlockState blockState = mc.world.getBlockState(targetPos);
+        BlockState blockState = mc.level.getBlockState(targetPos);
 
         if (isUnstrippedLog(blockState)) {
             state = State.STRIPPING;
@@ -181,7 +183,7 @@ public class AutoLogStrip extends Module {
 
     private void handleStripping() {
         if (targetPos == null) { reset(); return; }
-        BlockState blockState = mc.world.getBlockState(targetPos);
+        BlockState blockState = mc.level.getBlockState(targetPos);
 
         if (isStrippedLog(blockState)) {
             if (chatFeedback.get()) info("Log stripped");
@@ -196,7 +198,7 @@ public class AutoLogStrip extends Module {
 
     private void handleWaitingToBreak() {
         if (!validateTarget()) return;
-        BlockState blockState = mc.world.getBlockState(targetPos);
+        BlockState blockState = mc.level.getBlockState(targetPos);
 
         if (isStrippedLog(blockState)) {
             state = State.BREAKING;
@@ -209,7 +211,7 @@ public class AutoLogStrip extends Module {
 
     private void handleBreaking() {
         if (targetPos == null) { reset(); return; }
-        BlockState blockState = mc.world.getBlockState(targetPos);
+        BlockState blockState = mc.level.getBlockState(targetPos);
 
         if (blockState.isAir()) {
             if (chatFeedback.get()) info("Log broken");
@@ -232,7 +234,7 @@ public class AutoLogStrip extends Module {
 
     private void handleWaitingToPlace() {
         if (targetPos == null) { reset(); return; }
-        BlockState blockState = mc.world.getBlockState(targetPos);
+        BlockState blockState = mc.level.getBlockState(targetPos);
 
         if (!blockState.isAir()) {
             if (isUnstrippedLog(blockState)) {
@@ -270,9 +272,9 @@ public class AutoLogStrip extends Module {
 
         doAction(() -> {
             InvUtils.swap(axe.slot(), true);
-            mc.interactionManager.interactBlock(mc.player, Hand.MAIN_HAND,
-                new BlockHitResult(Vec3d.ofCenter(targetPos), Direction.UP, targetPos, false));
-            if (swingHand.get()) mc.player.swingHand(Hand.MAIN_HAND);
+            mc.gameMode.useItemOn(mc.player, InteractionHand.MAIN_HAND,
+                new BlockHitResult(Vec3.atCenterOf(targetPos), Direction.UP, targetPos, false));
+            if (swingHand.get()) mc.player.swing(InteractionHand.MAIN_HAND);
             InvUtils.swapBack();
         });
     }
@@ -287,37 +289,18 @@ public class AutoLogStrip extends Module {
 
         doAction(() -> {
             InvUtils.swap(axe.slot(), false);
-            mc.interactionManager.updateBlockBreakingProgress(targetPos, Direction.UP);
-            if (swingHand.get()) mc.player.swingHand(Hand.MAIN_HAND);
+            BlockUtils.breakBlock(targetPos, swingHand.get());
         });
     }
 
     private boolean doPlace() {
-        ItemStack offHand = mc.player.getOffHandStack();
-        if (!isLogItem(offHand) && !refillOffHand()) return false;
+        ItemStack offHand = mc.player.getOffhandItem();
+        if (!isPlaceableLogItem(offHand) && !refillOffHand()) return false;
+        offHand = mc.player.getOffhandItem();
+        if (!isPlaceableLogItem(offHand)) return false;
 
-        BlockPos placeOn = findPlaceablePosition();
-        if (placeOn == null) return false;
-
-        int dx = targetPos.getX() - placeOn.getX();
-        int dy = targetPos.getY() - placeOn.getY();
-        int dz = targetPos.getZ() - placeOn.getZ();
-        Direction placeDir = Direction.UP;
-        if (dy > 0) placeDir = Direction.UP;
-        else if (dy < 0) placeDir = Direction.DOWN;
-        else if (dx > 0) placeDir = Direction.EAST;
-        else if (dx < 0) placeDir = Direction.WEST;
-        else if (dz > 0) placeDir = Direction.SOUTH;
-        else if (dz < 0) placeDir = Direction.NORTH;
-
-        Direction finalDir = placeDir;
-        doAction(() -> {
-            mc.interactionManager.interactBlock(mc.player, Hand.OFF_HAND,
-                new BlockHitResult(Vec3d.ofCenter(placeOn).add(0, 0.5, 0), finalDir, placeOn, false));
-            if (swingHand.get()) mc.player.swingHand(Hand.OFF_HAND);
-        });
-
-        return true;
+        FindItemResult offHandLog = new FindItemResult(SlotUtils.OFFHAND, offHand.getCount());
+        return BlockUtils.place(targetPos, offHandLog, autoRotate.get(), -100, swingHand.get(), true, false);
     }
 
     private void doAction(Runnable action) {
@@ -328,29 +311,18 @@ public class AutoLogStrip extends Module {
         }
     }
 
-    private BlockPos findPlaceablePosition() {
-        BlockPos below = targetPos.down();
-        if (!mc.world.getBlockState(below).isAir()) return below;
-
-        for (Direction dir : Direction.values()) {
-            BlockPos adjacent = targetPos.offset(dir);
-            if (!mc.world.getBlockState(adjacent).isAir()) return adjacent;
-        }
-        return null;
-    }
-
     private boolean refillOffHand() {
         FindItemResult result;
 
         if (refillWithAnyLog.get()) {
-            result = InvUtils.find(s -> isLogItem(s) && InvUtils.find(s.getItem()).slot() != 45);
+            result = InvUtils.find(this::isPlaceableLogItem, SlotUtils.HOTBAR_START, SlotUtils.MAIN_END);
         } else if (firstLogType != null) {
-            result = InvUtils.find(s -> s.getItem() == firstLogType && InvUtils.find(s.getItem()).slot() != 45);
+            result = InvUtils.find(s -> !s.isEmpty() && s.getItem() == firstLogType, SlotUtils.HOTBAR_START, SlotUtils.MAIN_END);
         } else {
             return false;
         }
 
-        if (!result.found() || result.slot() == 45) return false;
+        if (!result.found()) return false;
 
         InvUtils.move().from(result.slot()).toOffhand();
         if (chatFeedback.get()) info("Refilled off-hand");
@@ -358,27 +330,31 @@ public class AutoLogStrip extends Module {
     }
 
     private boolean isInRange(BlockPos pos) {
-        return mc.player.squaredDistanceTo(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)
+        return mc.player.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)
             <= maxRange.get() * maxRange.get();
     }
 
     private boolean isUnstrippedLog(BlockState state) {
-        return state.isIn(BlockTags.LOGS) && !isStripped(state.getBlock());
+        return state.is(BlockTags.LOGS) && !isStripped(state.getBlock());
     }
 
     private boolean isStrippedLog(BlockState state) {
-        return state.isIn(BlockTags.LOGS) && isStripped(state.getBlock());
+        return state.is(BlockTags.LOGS) && isStripped(state.getBlock());
     }
 
     private boolean isStripped(Block block) {
-        return Registries.BLOCK.getId(block).getPath().contains("stripped");
+        return BuiltInRegistries.BLOCK.getKey(block).getPath().contains("stripped");
     }
 
-    private boolean isLogItem(ItemStack stack) {
-        return stack.isIn(ItemTags.LOGS) && !stack.isEmpty();
+    private boolean isPlaceableLogItem(ItemStack stack) {
+        return !stack.isEmpty() && stack.is(ItemTags.LOGS) && !isStripped(stack.getItem());
+    }
+
+    private boolean isStripped(Item item) {
+        return BuiltInRegistries.ITEM.getKey(item).getPath().contains("stripped");
     }
 
     private String getBlockName(Block block) {
-        return Registries.BLOCK.getId(block).getPath().replace("_", " ").toUpperCase();
+        return BuiltInRegistries.BLOCK.getKey(block).getPath().replace("_", " ").toUpperCase();
     }
 }

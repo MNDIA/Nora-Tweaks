@@ -12,12 +12,11 @@ import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.sound.SoundEvents;
-
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
@@ -47,7 +46,7 @@ public class ChatUtility extends Module {
     private final Setting<List<SoundEvent>> sound = sgChatNotify.add(new SoundEventListSetting.Builder()
         .name("sound")
         .description("The sound to play on notification.")
-        .defaultValue(List.of(SoundEvents.ENTITY_EXPERIENCE_ORB_PICKUP))
+        .defaultValue(List.of(SoundEvents.EXPERIENCE_ORB_PICKUP))
         .build()
     );
 
@@ -123,10 +122,10 @@ public class ChatUtility extends Module {
     }
 
     @Override
-    public NbtCompound toTag() {
-        NbtCompound tag = super.toTag();
+    public CompoundTag toTag() {
+        CompoundTag tag = super.toTag();
 
-        NbtList keywordsTag = new NbtList();
+        ListTag keywordsTag = new ListTag();
         for (Keyword keyword : keywords) {
             keywordsTag.add(keyword.toNbt());
         }
@@ -136,15 +135,15 @@ public class ChatUtility extends Module {
     }
 
     @Override
-    public Module fromTag(NbtCompound tag) {
+    public Module fromTag(CompoundTag tag) {
         super.fromTag(tag);
 
         keywords.clear();
-        if (tag.contains("keywords") && tag.get("keywords") != null && tag.get("keywords").getType() == NbtElement.LIST_TYPE) { // 9 = List
-            NbtList keywordsTag = (NbtList) tag.get("keywords");
-            for (NbtElement keywordTag : keywordsTag) {
-                if (keywordTag.getType() == 10) { // 10 = Compound
-                    keywords.add(Keyword.fromNbt((NbtCompound) keywordTag));
+        if (tag.contains("keywords") && tag.get("keywords") != null && tag.get("keywords").getId() == Tag.TAG_LIST) { // 9 = List
+            ListTag keywordsTag = (ListTag) tag.get("keywords");
+            for (Tag keywordTag : keywordsTag) {
+                if (keywordTag.getId() == 10) { // 10 = Compound
+                    keywords.add(Keyword.fromNbt((CompoundTag) keywordTag));
                 }
             }
         }
@@ -219,7 +218,7 @@ public class ChatUtility extends Module {
         if (!autoMessageEnabled.get()) return;
 
         if (timer >= delay.get() * 20) {
-            mc.player.networkHandler.sendChatMessage(message.get());
+            mc.player.connection.sendChat(message.get());
             timer = 0;
         } else {
             timer++;

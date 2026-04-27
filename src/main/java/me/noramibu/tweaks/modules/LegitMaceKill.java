@@ -6,19 +6,19 @@ package me.noramibu.tweaks.modules;
 
 import me.noramibu.tweaks.NoraTweaks;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
-import meteordevelopment.meteorclient.mixininterface.IPlayerInteractEntityC2SPacket;
-import meteordevelopment.meteorclient.mixininterface.IPlayerMoveC2SPacket;
+import meteordevelopment.meteorclient.mixininterface.IServerboundMovePlayerPacket;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.network.packet.c2s.play.VehicleMoveC2SPacket;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundAttackPacket;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.Vec3;
 
 public class LegitMaceKill extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -75,24 +75,27 @@ public class LegitMaceKill extends Module {
         super(NoraTweaks.CATEGORY, "legit-mace-kill", "Amplifies mace damage based on fall distance. Only works when falling from minimum height.");
     }
 
-    private Vec3d previouspos;
+    private Vec3 previouspos;
 
     @EventHandler
     private void onSendPacket(PacketEvent.Send event) {
         if (mc.player == null) return;
-        if (mc.player.getMainHandStack().getItem() != Items.MACE) return;
-        if (!(event.packet instanceof IPlayerInteractEntityC2SPacket packet)) return;
-        // Check if this is an attack packet by checking the type
-        if (packet.meteor$getEntity() == null) return;
+        if (mc.level == null) return;
+        if (mc.player.getMainHandItem().getItem() != Items.MACE) return;
+
+        if (!(event.packet instanceof ServerboundAttackPacket(int entityId))) return;
+
+        var attackedEntity = mc.level.getEntity(entityId);
+        if (attackedEntity == null) return;
 
         // Only proceed if the target is a LivingEntity
-        if (!(packet.meteor$getEntity() instanceof LivingEntity targetEntity)) return;
+        if (!(attackedEntity instanceof LivingEntity targetEntity)) return;
 
-        if (packetDisable.get() && (targetEntity.isBlocking() || targetEntity.isInvulnerable() || targetEntity.isInCreativeMode()))
+        if (packetDisable.get() && (targetEntity.isBlocking() || targetEntity.isInvulnerable() || targetEntity.hasInfiniteMaterials()))
             return;
 
         //? if >=1.21.9 {
-        previouspos = mc.player.getEntityPos();
+        previouspos = mc.player.position();
         //?} else
         /*previouspos = mc.player.getPos();
         */
@@ -109,40 +112,40 @@ public class LegitMaceKill extends Module {
         if (chatFeedback.get()) {
             double originalFall = mc.player.fallDistance;
             double amplifiedFall = originalFall * fallMultiplier.get();
-            mc.player.sendMessage(Text.literal("§8[§6Nora Tweaks§8] §7Mace Kill triggered! Fall: " + String.format("%.1f", originalFall) + " → " + String.format("%.1f", amplifiedFall) + " blocks"), false);
+            mc.player.sendSystemMessage(Component.literal("§8[§6Nora Tweaks§8] §7Mace Kill triggered! Fall: " + String.format("%.1f", originalFall) + " → " + String.format("%.1f", amplifiedFall) + " blocks"));
         }
 
         int packetsRequired = (int) Math.ceil(Math.abs(blocks / 10.0));
         if (packetsRequired > 20) packetsRequired = 1;
 
-        BlockPos isopenair1 = mc.player.getBlockPos().add(0, blocks, 0);
-        BlockPos isopenair2 = mc.player.getBlockPos().add(0, blocks + 1, 0);
+        BlockPos isopenair1 = mc.player.blockPosition().offset(0, blocks, 0);
+        BlockPos isopenair2 = mc.player.blockPosition().offset(0, blocks + 1, 0);
         if (!isSafeBlock(isopenair1) || !isSafeBlock(isopenair2)) return;
 
         if (blocks <= 22) {
-            if (mc.player.hasVehicle()) {
+            if (mc.player.isPassenger()) {
                 for (int i = 0; i < 4; i++) {
-                    mc.player.networkHandler.sendPacket(VehicleMoveC2SPacket.fromVehicle(mc.player.getVehicle()));
+                    mc.player.connection.send(ServerboundMoveVehiclePacket.fromEntity(mc.player.getVehicle()));
                 }
                 double maxHeight = Math.min(mc.player.getVehicle().getY() + 22, mc.player.getVehicle().getY() + blocks);
                 doVehicleTeleports(maxHeight, blocks);
             } else {
                 for (int i = 0; i < 4; i++) {
-                    mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.OnGroundOnly(false, mc.player.horizontalCollision));
+                    mc.player.connection.send(new ServerboundMovePlayerPacket.StatusOnly(false, mc.player.horizontalCollision));
                 }
                 double heightY = Math.min(mc.player.getY() + 22, mc.player.getY() + blocks);
                 doPlayerTeleports(heightY);
             }
         } else {
-            if (mc.player.hasVehicle()) {
+            if (mc.player.isPassenger()) {
                 for (int packetNumber = 0; packetNumber < (packetsRequired - 1); packetNumber++) {
-                    mc.player.networkHandler.sendPacket(VehicleMoveC2SPacket.fromVehicle(mc.player.getVehicle()));
+                    mc.player.connection.send(ServerboundMoveVehiclePacket.fromEntity(mc.player.getVehicle()));
                 }
                 double maxHeight = mc.player.getVehicle().getY() + blocks;
                 doVehicleTeleports(maxHeight, blocks);
             } else {
                 for (int i = 0; i < packetsRequired - 1; i++) {
-                    mc.player.networkHandler.sendPacket(new PlayerMoveC2SPacket.OnGroundOnly(false, mc.player.horizontalCollision));
+                    mc.player.connection.send(new ServerboundMovePlayerPacket.StatusOnly(false, mc.player.horizontalCollision));
                 }
                 double heightY = mc.player.getY() + blocks;
                 doPlayerTeleports(heightY);
@@ -150,33 +153,33 @@ public class LegitMaceKill extends Module {
         }
     }
     private void doPlayerTeleports(double height) {
-        PlayerMoveC2SPacket movepacket = new PlayerMoveC2SPacket.PositionAndOnGround(
+        ServerboundMovePlayerPacket movepacket = new ServerboundMovePlayerPacket.Pos(
                 mc.player.getX(), height, mc.player.getZ(), false, mc.player.horizontalCollision);
-        PlayerMoveC2SPacket homepacket = new PlayerMoveC2SPacket.PositionAndOnGround(
-                previouspos.getX(), previouspos.getY(), previouspos.getZ(),
+        ServerboundMovePlayerPacket homepacket = new ServerboundMovePlayerPacket.Pos(
+                previouspos.x(), previouspos.y(), previouspos.z(),
                 false, mc.player.horizontalCollision);
         if (preventDeath.get()) {
-            homepacket = new PlayerMoveC2SPacket.PositionAndOnGround(
-                    previouspos.getX(), previouspos.getY() + 0.25, previouspos.getZ(),
+            homepacket = new ServerboundMovePlayerPacket.Pos(
+                    previouspos.x(), previouspos.y() + 0.25, previouspos.z(),
                     false, mc.player.horizontalCollision);
         }
-        ((IPlayerMoveC2SPacket) homepacket).meteor$setTag(1337);
-        ((IPlayerMoveC2SPacket) movepacket).meteor$setTag(1337);
-        mc.player.networkHandler.sendPacket(movepacket);
-        mc.player.networkHandler.sendPacket(homepacket);
+        ((IServerboundMovePlayerPacket) homepacket).meteor$setTag(1337);
+        ((IServerboundMovePlayerPacket) movepacket).meteor$setTag(1337);
+        mc.player.connection.send(movepacket);
+        mc.player.connection.send(homepacket);
         if (preventDeath.get()) {
-            mc.player.setVelocity(mc.player.getVelocity().x, 0.1, mc.player.getVelocity().z);
+            mc.player.setDeltaMovement(mc.player.getDeltaMovement().x, 0.1, mc.player.getDeltaMovement().z);
             mc.player.fallDistance = 0;
         }
     }
     private void doVehicleTeleports(double height, int blocks) {
-        mc.player.getVehicle().setPosition(mc.player.getVehicle().getX(), height + blocks, mc.player.getVehicle().getZ());
-        mc.player.networkHandler.sendPacket(VehicleMoveC2SPacket.fromVehicle(mc.player.getVehicle()));
-        mc.player.getVehicle().setPosition(previouspos);
-        mc.player.networkHandler.sendPacket(VehicleMoveC2SPacket.fromVehicle(mc.player.getVehicle()));
+        mc.player.getVehicle().setPos(mc.player.getVehicle().getX(), height + blocks, mc.player.getVehicle().getZ());
+        mc.player.connection.send(ServerboundMoveVehiclePacket.fromEntity(mc.player.getVehicle()));
+        mc.player.getVehicle().setPos(previouspos);
+        mc.player.connection.send(ServerboundMoveVehiclePacket.fromEntity(mc.player.getVehicle()));
     }
     private int getMaxHeightAbovePlayer() {
-        BlockPos playerPos = mc.player.getBlockPos();
+        BlockPos playerPos = mc.player.blockPosition();
 
         // Use multiplier mode based on current fall distance
         double currentFallDistance = mc.player.fallDistance;
@@ -193,7 +196,7 @@ public class LegitMaceKill extends Module {
         int targetHeight = playerPos.getY() + multipliedHeight;
         for (int i = targetHeight; i > playerPos.getY(); i--) {
             BlockPos up1 = new BlockPos(playerPos.getX(), i, playerPos.getZ());
-            BlockPos up2 = up1.up(1);
+            BlockPos up2 = up1.above(1);
             if (isSafeBlock(up1) && isSafeBlock(up2)) return i - playerPos.getY();
         }
 
@@ -202,8 +205,9 @@ public class LegitMaceKill extends Module {
     }
 
     private boolean isSafeBlock(BlockPos pos) {
-        return mc.world.getBlockState(pos).isReplaceable()
-                && mc.world.getFluidState(pos).isEmpty()
-                && !mc.world.getBlockState(pos).isOf(Blocks.POWDER_SNOW);
+        return mc.level.getBlockState(pos).canBeReplaced()
+                && mc.level.getFluidState(pos).isEmpty()
+                && !mc.level.getBlockState(pos).is(Blocks.POWDER_SNOW);
     }
 }
+

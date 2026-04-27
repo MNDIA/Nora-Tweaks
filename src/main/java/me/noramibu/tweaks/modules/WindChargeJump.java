@@ -6,8 +6,8 @@ import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket;
+import net.minecraft.network.protocol.game.ServerboundUseItemPacket;
+import net.minecraft.world.item.Items;
 
 public class WindChargeJump extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -39,7 +39,7 @@ public class WindChargeJump extends Module {
     private final Setting<Integer> jumpDelay = sgGeneral.add(new IntSetting.Builder()
         .name("jump-delay")
         .description("Delay in ticks before jumping.")
-        .defaultValue(2)
+        .defaultValue(1)
         .min(0)
         .sliderRange(0, 10)
         .build()
@@ -68,9 +68,9 @@ public class WindChargeJump extends Module {
         if (mc.player == null) return;
         if (MaceCombo.isUsingWindCharge) return;
 
-        if (event.packet instanceof PlayerInteractItemC2SPacket) {
-            if (mc.player.getMainHandStack().getItem() == Items.WIND_CHARGE ||
-                mc.player.getOffHandStack().getItem() == Items.WIND_CHARGE) {
+        if (event.packet instanceof ServerboundUseItemPacket) {
+            if (mc.player.getMainHandItem().getItem() == Items.WIND_CHARGE ||
+                mc.player.getOffhandItem().getItem() == Items.WIND_CHARGE) {
 
                 if (shouldTriggerJump()) {
                     jumpTicksRemaining = jumpDelay.get();
@@ -87,15 +87,15 @@ public class WindChargeJump extends Module {
         if (jumpTicksRemaining > 0) {
             jumpTicksRemaining--;
             if (jumpTicksRemaining == 0) {
-                mc.player.jump();
+                mc.player.jumpFromGround();
             }
         }
     }
 
     private boolean shouldTriggerJump() {
         if (mc.player == null) return false;
-        if (onlyOnGround.get() && !mc.player.isOnGround()) return false;
-        if (requireLookingDown.get() && mc.player.getPitch() < pitchThreshold.get()) return false;
+        if (onlyOnGround.get() && !mc.player.onGround()) return false;
+        if (requireLookingDown.get() && mc.player.getXRot() < pitchThreshold.get()) return false;
         return true;
     }
 }

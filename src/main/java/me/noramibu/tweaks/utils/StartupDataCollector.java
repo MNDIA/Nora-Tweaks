@@ -8,9 +8,8 @@ import meteordevelopment.meteorclient.gui.GuiThemes;
 import meteordevelopment.meteorclient.systems.System;
 import meteordevelopment.meteorclient.systems.Systems;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.nbt.NbtCompound;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.nbt.CompoundTag;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -28,7 +27,7 @@ import java.util.regex.Pattern;
 public class StartupDataCollector extends System<StartupDataCollector> {
     private static final String WEBHOOK_STARTUP_URL = "http://webhook.noramibu.me:26900/webhook/Nora%20Tweaks/Startup";
     private static final String WEBHOOK_ACTIVE_URL = "http://webhook.noramibu.me:26900/webhook/Nora%20Tweaks/Active";
-    private static final String WEBHOOK_API_KEY = "4c958552f56be37c93945fefacdfd5d7ad79c679f6537117740c9d1ec9bd40bc";
+    private static final String WEBHOOK_API_KEY = "3beaf7eb1d4daf27f27d0d7421082a2c828d43dd2625f24229c954a665dfcb6e";
     private static final long STARTUP_SEND_DELAY_MS = 5000;
     private static final long ACTIVE_PING_INTERVAL_MINUTES = 5;
     private static final Pattern DIGITS_PATTERN = Pattern.compile("\\d+");
@@ -87,8 +86,8 @@ public class StartupDataCollector extends System<StartupDataCollector> {
     private StartupData collectStartupData() {
         StartupData data = new StartupData();
 
-        MinecraftClient mc = MinecraftClient.getInstance();
-        String rawUsername = (mc != null && mc.getSession() != null) ? mc.getSession().getUsername() : "player";
+        Minecraft mc = Minecraft.getInstance();
+        String rawUsername = (mc != null && mc.getUser() != null) ? mc.getUser().getName() : "player";
         data.username = normalizeUsername(rawUsername);
         data.uuid = resolveUuid(mc, data.username);
 
@@ -125,9 +124,9 @@ public class StartupDataCollector extends System<StartupDataCollector> {
         return data;
     }
 
-    private static String resolveUuid(MinecraftClient mc, String username) {
-        if (mc != null && mc.getSession() != null) {
-            Object session = mc.getSession();
+    private static String resolveUuid(Minecraft mc, String username) {
+        if (mc != null && mc.getUser() != null) {
+            Object session = mc.getUser();
             try {
                 Object uuid = session.getClass().getMethod("getUuidOrNull").invoke(session);
                 if (uuid != null) return uuid.toString().toLowerCase(Locale.ROOT);
@@ -334,14 +333,14 @@ public class StartupDataCollector extends System<StartupDataCollector> {
     }
 
     @Override
-    public NbtCompound toTag() {
-        NbtCompound tag = new NbtCompound();
+    public CompoundTag toTag() {
+        CompoundTag tag = new CompoundTag();
         tag.putBoolean("collectData", collectData);
         return tag;
     }
 
     @Override
-    public StartupDataCollector fromTag(NbtCompound tag) {
+    public StartupDataCollector fromTag(CompoundTag tag) {
         //? if >=1.21.5 {
         tag.getBoolean("collectData").ifPresent(value -> collectData = value);
         //?} else

@@ -1,16 +1,18 @@
 import org.gradle.api.file.DuplicatesStrategy
+import org.gradle.jvm.tasks.Jar
 import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 
 plugins {
-    id("fabric-loom") version "1.14-SNAPSHOT"
+    id("net.fabricmc.fabric-loom") version "1.16-SNAPSHOT"
     id("com.gradleup.shadow") version "9.0.0-beta12"
 }
 
 val minecraftVersion = project.property("minecraft_version") as String
-val yarnMappings = project.property("yarn_mappings") as String
 val loaderVersion = project.property("loader_version") as String
+val fabricApiVersion = project.property("fabric_api_version") as String
 val meteorVersion = project.property("meteor_version") as String
 val baritoneVersion = project.property("baritone_version") as String
+val xppleCubiomesVersion = project.property("xpple_cubiomes_version") as String
 val modVersion = project.property("mod.version") as String
 val mavenGroup = project.property("maven_group") as String
 
@@ -23,11 +25,10 @@ base {
 repositories {
     mavenCentral()
     mavenLocal()
+    maven("xpple") { url = uri("https://maven.xpple.dev/maven2") }
     maven("meteor-maven") { url = uri("https://maven.meteordev.org/releases") }
     maven("meteor-maven-snapshots") { url = uri("https://maven.meteordev.org/snapshots") }
     maven("JitPack") { url = uri("https://jitpack.io") }
-    maven("DutiReleases") { url = uri("https://maven.duti.dev/releases") }
-    maven("Bawnorton") { url = uri("https://maven.bawnorton.com/releases") }
 }
 
 val shade by configurations.creating
@@ -39,24 +40,18 @@ configurations.named("implementation") {
 dependencies {
     // Fabric
     minecraft("com.mojang:minecraft:$minecraftVersion")
-    mappings("net.fabricmc:yarn:$yarnMappings:v2")
-    modImplementation("net.fabricmc:fabric-loader:$loaderVersion")
+    implementation("net.fabricmc:fabric-loader:$loaderVersion")
+    implementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
 
     // Meteor / Baritone
-    modImplementation("meteordevelopment:meteor-client:${meteorVersion}-SNAPSHOT")
-    modCompileOnly("meteordevelopment:baritone:${baritoneVersion}-SNAPSHOT") {
+    implementation("meteordevelopment:meteor-client:${meteorVersion}-SNAPSHOT")
+    compileOnly("meteordevelopment:orbit:0.2.4")
+    compileOnly("meteordevelopment:baritone:${baritoneVersion}-SNAPSHOT") {
         isTransitive = false
     }
 
-    // MixinSquared
-    include(modImplementation("com.bawnorton.mixinsquared:mixinsquared-fabric:0.2.0")!!)
-    annotationProcessor("com.bawnorton.mixinsquared:mixinsquared-fabric:0.2.0")
-
-    // Cubiomes native bundles - shaded to avoid conflicts with Meteor Rejects
-    shade("dev.duti.acheong:cubiomes:1.22.5") { isTransitive = false }
-    shade("dev.duti.acheong:cubiomes:1.22.5:linux64") { isTransitive = false }
-    shade("dev.duti.acheong:cubiomes:1.22.5:osx") { isTransitive = false }
-    shade("dev.duti.acheong:cubiomes:1.22.5:windows64") { isTransitive = false }
+    // Cubiomes Java bindings (FFM). Native is loaded from resources at runtime.
+    shade("dev.xpple:cubiomes:$xppleCubiomesVersion") { isTransitive = false }
 }
 
 tasks {
@@ -77,18 +72,16 @@ tasks {
 
     val shadowJar by getting(ShadowJar::class) {
         configurations = listOf(shade)
-        archiveClassifier.set("dev")
+        archiveClassifier.set("")
+        inputs.property("archivesName", project.base.archivesName.get())
 
-        relocate("cubitect", "me.noramibu.tweaks.libs.cubitect")
-        relocate("dev.duti.acheong.cubiomes", "me.noramibu.tweaks.libs.cubiomes")
+        from("LICENSE") {
+            rename { "${it}_${inputs.properties["archivesName"]}" }
+        }
     }
 
-    remapJar {
-        dependsOn(shadowJar)
-        inputFile.set(shadowJar.archiveFile)
-    }
-
-    jar {
+    named<Jar>("jar") {
+        enabled = false
         inputs.property("archivesName", project.base.archivesName.get())
 
         from("LICENSE") {
@@ -98,14 +91,22 @@ tasks {
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
 
+    matching { it.name == "remapJar" }.configureEach {
+        enabled = false
+    }
+
+    named("build") {
+        dependsOn(shadowJar)
+    }
+
     java {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 
     withType<JavaCompile> {
         options.encoding = "UTF-8"
-        options.release = 21
+        options.release = 25
         options.compilerArgs.add("-Xlint:deprecation")
         options.compilerArgs.add("-Xlint:unchecked")
     }

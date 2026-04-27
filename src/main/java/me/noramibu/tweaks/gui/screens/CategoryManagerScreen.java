@@ -10,7 +10,7 @@ import meteordevelopment.meteorclient.gui.widgets.containers.WTable;
 import meteordevelopment.meteorclient.gui.widgets.input.WTextBox;
 import meteordevelopment.meteorclient.gui.widgets.pressable.WButton;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.Minecraft;
 
 public class CategoryManagerScreen extends WindowScreen {
     private WTable categoriesTable;
@@ -58,10 +58,10 @@ public class CategoryManagerScreen extends WindowScreen {
             categoriesTable.add(theme.label(category.name)).expandX();
 
             WButton manageButton = categoriesTable.add(theme.button("Manage")).widget();
-            manageButton.action = () -> MinecraftClient.getInstance().setScreen(new ManageCategoryModulesScreen(theme, category));
+            manageButton.action = () -> Minecraft.getInstance().setScreen(new ManageCategoryModulesScreen(theme, category));
 
             WButton renameButton = categoriesTable.add(theme.button("Rename")).widget();
-            renameButton.action = () -> MinecraftClient.getInstance().setScreen(new RenameCategoryScreen(theme, category));
+            renameButton.action = () -> Minecraft.getInstance().setScreen(new RenameCategoryScreen(theme, category));
 
             WButton activateButton = categoriesTable.add(theme.button("Activate All")).widget();
             activateButton.action = () -> {
@@ -86,13 +86,14 @@ public class CategoryManagerScreen extends WindowScreen {
     }
 
     @EventHandler
+    @SuppressWarnings("unused")
     private void onCategoriesChanged(CustomCategoriesChangedEvent event) {
-        MinecraftClient.getInstance().execute(this::buildCategoriesTable);
+        Minecraft.getInstance().execute(this::buildCategoriesTable);
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         MeteorClient.EVENT_BUS.unsubscribe(this);
-        super.close();
+        super.onClose();
     }
 }

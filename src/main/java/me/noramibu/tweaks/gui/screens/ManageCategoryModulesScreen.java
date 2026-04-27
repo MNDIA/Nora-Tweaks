@@ -14,8 +14,7 @@ import meteordevelopment.meteorclient.gui.widgets.input.WIntEdit;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.orbit.EventHandler;
-import net.minecraft.client.MinecraftClient;
-
+import net.minecraft.client.Minecraft;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -119,17 +118,18 @@ public class ManageCategoryModulesScreen extends WindowScreen {
     }
 
     @EventHandler
+    @SuppressWarnings("unused")
     private void onCategoriesChanged(CustomCategoriesChangedEvent event) {
-        MinecraftClient.getInstance().execute(() -> {
+        Minecraft.getInstance().execute(() -> {
             if (!CustomCategoryManager.getCategories().contains(category)) {
-                close();
+                onClose();
                 return;
             }
 
             // If the name changed, reopen the screen with the new title
             if (!this.getTitle().getString().equals("Manage Category - " + category.name)) {
-                this.close();
-                MinecraftClient.getInstance().setScreen(new ManageCategoryModulesScreen(theme, category));
+                this.onClose();
+                Minecraft.getInstance().setScreen(new ManageCategoryModulesScreen(theme, category));
                 return;
             }
 
@@ -138,8 +138,8 @@ public class ManageCategoryModulesScreen extends WindowScreen {
     }
 
     @Override
-    public void close() {
+    public void onClose() {
         MeteorClient.EVENT_BUS.unsubscribe(this);
-        super.close();
+        super.onClose();
     }
 }

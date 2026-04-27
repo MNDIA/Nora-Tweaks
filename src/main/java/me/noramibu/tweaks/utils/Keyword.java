@@ -1,8 +1,7 @@
 package me.noramibu.tweaks.utils;
 
-import net.minecraft.nbt.NbtCompound;
-
 import java.util.regex.Pattern;
+import net.minecraft.nbt.CompoundTag;
 
 public class Keyword {
     public String name;
@@ -42,8 +41,8 @@ public class Keyword {
         }
     }
 
-    public NbtCompound toNbt() {
-        NbtCompound nbt = new NbtCompound();
+    public CompoundTag toNbt() {
+        CompoundTag nbt = new CompoundTag();
         nbt.putString("name", name);
         nbt.putBoolean("caseSensitive", caseSensitive);
         nbt.putBoolean("wholeWord", wholeWord);
@@ -51,7 +50,7 @@ public class Keyword {
         return nbt;
     }
 
-    public static Keyword fromNbt(NbtCompound nbt) {
+    public static Keyword fromNbt(CompoundTag nbt) {
         //? if >=1.21.5 {
         Keyword keyword = new Keyword(
             nbt.getString("name").orElse(""),
