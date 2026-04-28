@@ -1,8 +1,6 @@
 //? if >=1.21.7 {
 package me.noramibu.tweaks.mixin;
 
-import com.llamalad7.mixinextras.sugar.Local;
-import com.mojang.blaze3d.pipeline.RenderPipeline;
 import me.noramibu.tweaks.modules.BetterLocator;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.waypoints.Waypoint;
@@ -19,7 +17,11 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.Mth;
+import net.minecraft.world.TickRateManager;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.waypoints.PartialTickSupplier;
 import net.minecraft.world.waypoints.TrackedWaypoint;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,7 +29,6 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(LocatorBarRenderer.class)
@@ -66,6 +67,7 @@ public abstract class LocatorBarMixin {
     private void renderBarReturn(GuiGraphicsExtractor context, DeltaTracker tickCounter, CallbackInfo ci) {
         if (module != null && module.isActive()) {
             renderOverlays(context, getCenterX(), getCenterY());
+            renderTrackedPlayerWaypoints(context, tickCounter, getCenterY());
         }
     }
 
@@ -144,15 +146,37 @@ public abstract class LocatorBarMixin {
         }
     }
 
-    @Redirect(method = "extractRenderState", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;blitSprite(Lcom/mojang/blaze3d/pipeline/RenderPipeline;Lnet/minecraft/resources/Identifier;IIIII)V"))
-    private void onDrawWaypointIcon(GuiGraphicsExtractor context, RenderPipeline pipeline, Identifier id, int x, int y, int w, int h, int color, @Local(argsOnly = true) TrackedWaypoint waypoint) {
-        if (w != 9 || h != 9 || module == null || !module.isActive() || minecraft.getCameraEntity() == null || waypoint == null) {
-            context.blitSprite(pipeline, id, x, y, w, h, color);
-            return;
-        }
+    @Unique
+    private void renderTrackedPlayerWaypoints(GuiGraphicsExtractor context, DeltaTracker tickCounter, int top) {
+        if (module == null || !module.isActive()) return;
+        if (!module.displayHeads.get() && !module.displayPlayerData.get()) return;
+        if (minecraft.player == null || minecraft.player.connection == null) return;
 
+        Entity cameraEntity = minecraft.getCameraEntity();
+        if (cameraEntity == null) return;
+
+        Level level = cameraEntity.level();
+        TickRateManager tickRateManager = level.tickRateManager();
+        PartialTickSupplier partialTickSupplier = entity -> tickCounter.getGameTimeDeltaPartialTick(!tickRateManager.isEntityFrozen(entity));
+        int screenMiddle = Mth.ceil((context.guiWidth() - 9) / 2.0F);
+
+        minecraft.player.connection.getWaypointManager().forEachWaypoint(cameraEntity, waypoint -> {
+            if (waypoint.id().left().map(uuid -> uuid.equals(cameraEntity.getUUID())).orElse(false)) return;
+
+            double angle = waypoint.yawAngleToCamera(level, minecraft.gameRenderer.getMainCamera(), partialTickSupplier);
+            if (angle <= -60.0 || angle > 60.0) return;
+
+            int dotPosition = Mth.floor(angle * 173.0 / 2.0 / 60.0);
+            int x = screenMiddle + dotPosition;
+            int y = top - 2;
+            renderTrackedPlayerWaypointData(context, waypoint, x, y);
+        });
+    }
+
+    @Unique
+    private void renderTrackedPlayerWaypointData(GuiGraphicsExtractor context, TrackedWaypoint waypoint, int x, int y) {
         PlayerInfo entry = waypoint.id().left().map(uuid -> minecraft.getConnection().getPlayerInfo(uuid)).orElse(null);
-        boolean showHeads = entry != null && module.displayHeads.get();
+        if (entry == null) return;
 
         float dist = Mth.sqrt((float) waypoint.distanceSquared(minecraft.getCameraEntity()));
         WaypointStyle style = minecraft.getWaypointStyles().get(waypoint.icon().style);
@@ -160,7 +184,7 @@ public abstract class LocatorBarMixin {
         float size = 9 * scale;
         float drawY = y - (size - 9) / 2;
 
-        if (showHeads) {
+        if (module.displayHeads.get()) {
             float drawX = x - (size - 9) / 2;
             //? if >=1.21.9 {
             Identifier skin = entry.getSkin().body().texturePath();
@@ -172,11 +196,9 @@ public abstract class LocatorBarMixin {
             context.drawTexture(RenderPipelines.GUI_TEXTURED, skin, (int) drawX, (int) drawY, 40.0f, 8.0f, (int) size, (int) size, 8, 8, 64, 64);
             */
             //?}
-        } else {
-            context.blitSprite(pipeline, id, x, y, w, h, color);
         }
 
-        if (entry != null && module.displayPlayerData.get() && (!module.displayPlayerOnlyOnTab.get() || minecraft.options.keyPlayerList.isDown())) {
+        if (module.displayPlayerData.get() && (!module.displayPlayerOnlyOnTab.get() || minecraft.options.keyPlayerList.isDown())) {
             int textColor = -1;
             if (module.respectPlayerColor.get()) {
                 textColor = (Integer) waypoint.icon().color.orElseGet(() ->
