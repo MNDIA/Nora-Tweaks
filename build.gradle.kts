@@ -74,19 +74,11 @@ tasks {
         configurations = listOf(shade)
         archiveClassifier.set("")
         inputs.property("archivesName", project.base.archivesName.get())
-
-        from("LICENSE") {
-            rename { "${it}_${inputs.properties["archivesName"]}" }
-        }
     }
 
     named<Jar>("jar") {
         enabled = false
         inputs.property("archivesName", project.base.archivesName.get())
-
-        from("LICENSE") {
-            rename { "${it}_${inputs.properties["archivesName"]}" }
-        }
 
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     }
