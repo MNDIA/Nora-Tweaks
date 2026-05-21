@@ -21,7 +21,6 @@ import me.noramibu.tweaks.modules.AttributeSwapping;
 
 import com.mojang.logging.LogUtils;
 import meteordevelopment.meteorclient.addons.MeteorAddon;
-import me.noramibu.tweaks.utils.ConfigModifier;
 import meteordevelopment.meteorclient.systems.Systems;
 import meteordevelopment.meteorclient.systems.modules.Category;
 import meteordevelopment.meteorclient.systems.modules.Modules;
@@ -32,7 +31,6 @@ import me.noramibu.tweaks.commands.MobCheckerCommand;
 import me.noramibu.tweaks.commands.LocateCommand;
 import me.noramibu.tweaks.commands.SeedCommand;
 import me.noramibu.tweaks.utils.Seeds;
-import me.noramibu.tweaks.utils.StartupDataCollector;
 
 public class NoraTweaks extends MeteorAddon {
     public static final Logger LOG = LogUtils.getLogger();
@@ -83,10 +81,6 @@ public class NoraTweaks extends MeteorAddon {
 
         Seeds.get();
 
-        Systems.add(new StartupDataCollector());
-
-        ConfigModifier.get();
-        
         checkMeteorRejectsVersion();
     }
     
