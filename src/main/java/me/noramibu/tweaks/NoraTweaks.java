@@ -15,6 +15,7 @@ import me.noramibu.tweaks.modules.AutoTrapPlus;
 import me.noramibu.tweaks.modules.DeepslateESP;
 import me.noramibu.tweaks.modules.OreSim;
 import me.noramibu.tweaks.modules.PearlChecker;
+import me.noramibu.tweaks.modules.SeedCracker;
 //? if >=1.21.7
 import me.noramibu.tweaks.modules.BetterLocator;
 import me.noramibu.tweaks.modules.AttributeSwapping;
@@ -73,6 +74,7 @@ public class NoraTweaks extends MeteorAddon {
         //?}
 
         Modules.get().add(new OreSim());
+        Modules.get().add(new SeedCracker());
 
         Commands.add(new MobCheckerCommand());
         Commands.add(new CalculatorCommand());

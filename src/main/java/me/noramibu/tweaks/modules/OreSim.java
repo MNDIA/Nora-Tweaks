@@ -58,6 +58,7 @@ public class OreSim extends Module {
     }
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    private final SettingGroup sgSeed = settings.createGroup("Seed");
 
     private final Setting<Integer> horizontalRadius = sgGeneral.add(new IntSetting.Builder()
         .name("chunk-range")
@@ -77,6 +78,21 @@ public class OreSim extends Module {
         .name("baritone")
         .description("Set baritone ore positions to the simulated ones.")
         .defaultValue(true)
+        .build());
+
+    private final Setting<Boolean> useCustomSeed = sgSeed.add(new BoolSetting.Builder()
+        .name("use-custom-seed")
+        .description("Override the world seed with a manually-defined seed (e.g. one derived by the seed-cracker module).")
+        .defaultValue(false)
+        .onChanged(v -> reload())
+        .build());
+
+    private final Setting<String> customSeed = sgSeed.add(new StringSetting.Builder()
+        .name("custom-seed")
+        .description("Numeric seed used when 'use-custom-seed' is enabled. Non-numeric strings fall back to String.hashCode().")
+        .defaultValue("0")
+        .visible(useCustomSeed::get)
+        .onChanged(v -> { if (useCustomSeed.get()) reload(); })
         .build());
 
     public boolean baritone() {
@@ -102,7 +118,7 @@ public class OreSim extends Module {
     @EventHandler
     private void onRender(Render3DEvent event) {
         if (mc.player == null || oreConfig == null) return;
-        if (Seeds.get().getSeed() == null) return;
+        if (worldSeed == null) return;
 
         int chunkX = mc.player.chunkPosition().x();
         int chunkZ = mc.player.chunkPosition().z();
@@ -195,13 +211,36 @@ public class OreSim extends Module {
 
     @Override
     public void onActivate() {
-        if (Seeds.get().getSeed() == null) {
-            error("No seed found. Run .seed-world <seed> to set one.");
+        if (resolveSeed() == null) {
+            error("No seed available. Run .seed-world <seed>, or enable 'use-custom-seed' with a numeric seed.");
             toggle();
             return;
         }
         updateWorldTracking();
         reload();
+    }
+
+    private Seed resolveSeed() {
+        if (useCustomSeed.get()) {
+            String raw = customSeed.get();
+            if (raw == null) return null;
+            String trimmed = raw.trim();
+            if (trimmed.isEmpty()) return null;
+            long parsed;
+            try {
+                parsed = Long.parseLong(trimmed);
+            } catch (NumberFormatException ignored) {
+                parsed = trimmed.hashCode();
+            }
+            return new Seed(parsed, Seeds.getDefaultCubiomesVersion());
+        }
+        return Seeds.get().getSeed();
+    }
+
+    public void applyCustomSeed(long seed) {
+        customSeed.set(Long.toString(seed));
+        useCustomSeed.set(true);
+        if (isActive()) reload();
     }
 
     @Override
@@ -223,7 +262,7 @@ public class OreSim extends Module {
     }
 
     private void reload() {
-        Seed seed = Seeds.get().getSeed();
+        Seed seed = resolveSeed();
         if (seed == null) return;
         worldSeed = seed;
         oreConfig = Ore.getRegistry(PlayerUtils.getDimension());
@@ -231,6 +270,14 @@ public class OreSim extends Module {
         if (mc.level != null) {
             loadVisibleChunks();
         }
+    }
+
+    public Map<ResourceKey<Biome>, List<Ore>> getOreConfig() {
+        return oreConfig;
+    }
+
+    public Seed getActiveSeed() {
+        return worldSeed;
     }
 
     private void detectWorldChange() {
