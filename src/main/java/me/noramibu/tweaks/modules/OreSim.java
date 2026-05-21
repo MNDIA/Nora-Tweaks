@@ -22,6 +22,7 @@ import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
+import meteordevelopment.meteorclient.utils.world.Dimension;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -57,6 +58,13 @@ public class OreSim extends Module {
         OFF
     }
 
+    public enum DimensionMode {
+        Auto,
+        Overworld,
+        Nether,
+        End
+    }
+
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
     private final SettingGroup sgSeed = settings.createGroup("Seed");
 
@@ -72,6 +80,13 @@ public class OreSim extends Module {
         .name("air-check-mode")
         .description("Checks for air blocks when validating simulated ore positions.")
         .defaultValue(AirCheck.RECHECK)
+        .build());
+
+    private final Setting<DimensionMode> dimensionMode = sgGeneral.add(new EnumSetting.Builder<DimensionMode>()
+        .name("dimension")
+        .description("Manually pick the dimension for ore generation. Use this when auto-detection misidentifies the dimension in irregular worlds (e.g. Nether quartz/debris not showing).")
+        .defaultValue(DimensionMode.Auto)
+        .onChanged(v -> { if (isActive()) reload(); })
         .build());
 
     private final Setting<Boolean> baritone = sgGeneral.add(new BoolSetting.Builder()
@@ -265,11 +280,20 @@ public class OreSim extends Module {
         Seed seed = resolveSeed();
         if (seed == null) return;
         worldSeed = seed;
-        oreConfig = Ore.getRegistry(PlayerUtils.getDimension());
+        oreConfig = Ore.getRegistry(resolveDimension());
         chunkRenderers.clear();
         if (mc.level != null) {
             loadVisibleChunks();
         }
+    }
+
+    private Dimension resolveDimension() {
+        return switch (dimensionMode.get()) {
+            case Overworld -> Dimension.Overworld;
+            case Nether -> Dimension.Nether;
+            case End -> Dimension.End;
+            case Auto -> PlayerUtils.getDimension();
+        };
     }
 
     public Map<ResourceKey<Biome>, List<Ore>> getOreConfig() {
