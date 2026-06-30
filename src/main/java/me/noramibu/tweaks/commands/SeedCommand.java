@@ -18,8 +18,6 @@ import net.minecraft.client.multiplayer.ClientSuggestionProvider;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import java.util.Arrays;
-import java.util.Locale;
 
 public class SeedCommand extends Command {
     private static final SimpleCommandExceptionType NO_SEED = new SimpleCommandExceptionType(Component.literal("No seed for current world saved."));
@@ -68,7 +66,7 @@ public class SeedCommand extends Command {
             argument("seed", StringArgumentType.string())
                 .then(argument("version", StringArgumentType.word())
                     .suggests((ctx, builder1) -> SharedSuggestionProvider.suggest(
-                        Arrays.asList("1.21.11", Seeds.getDefaultCubiomesVersion().toLowerCase(Locale.ROOT)),
+                        Seeds.getSuggestedCubiomesVersions(),
                         builder1
                     ))
                     .executes(ctx -> {

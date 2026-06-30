@@ -20,6 +20,7 @@ import meteordevelopment.meteorclient.gui.widgets.WWidget;
 import meteordevelopment.meteorclient.pathing.BaritoneUtils;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Module;
+import meteordevelopment.meteorclient.systems.modules.render.Xray;
 import meteordevelopment.meteorclient.utils.Utils;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
 import meteordevelopment.meteorclient.utils.world.Dimension;
@@ -27,6 +28,7 @@ import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.QuartPos;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
@@ -165,14 +167,23 @@ public class OreSim extends Module {
 
     @EventHandler
     private void onBlockUpdate(BlockUpdateEvent event) {
-        if (airCheck.get() != AirCheck.RECHECK || event.newState.canOcclude()) return;
-        long chunkKey = ChunkPos.pack(event.pos);
+        if (Xray.ORES.contains(event.newState.getBlock())) return;
+
+        int x = event.pos.getX();
+        int y = event.pos.getY();
+        int z = event.pos.getZ();
+        long chunkKey = ChunkPos.pack(x >> 4, z >> 4);
         Map<Ore, Set<Vec3>> chunk = chunkRenderers.get(chunkKey);
         if (chunk == null) return;
-        Vec3 pos = Vec3.atLowerCornerOf(event.pos);
-        for (Set<Vec3> ores : chunk.values()) {
+
+        Vec3 pos = new Vec3(x, y, z);
+        chunk.values().removeIf(ores -> {
             ores.remove(pos);
-        }
+            return ores.isEmpty();
+        });
+
+        if (chunk.isEmpty()) chunkRenderers.remove(chunkKey);
+        oreGoals.removeIf(goal -> goal.getX() == x && goal.getY() == y && goal.getZ() == z);
     }
 
     @EventHandler
@@ -371,7 +382,11 @@ public class OreSim extends Module {
                 int y = ore.heightProvider.sample(random, ore.heightContext);
                 BlockPos origin = new BlockPos(x, y, z);
 
-                ResourceKey<Biome> biome = chunk.getNoiseBiome(x, y, z).unwrapKey().get();
+                ResourceKey<Biome> biome = chunk.getNoiseBiome(
+                    QuartPos.fromBlock(x),
+                    QuartPos.fromBlock(y),
+                    QuartPos.fromBlock(z)
+                ).unwrapKey().get();
                 if (!getOresForBiome(biome).contains(ore)) continue;
 
                 if (ore.scattered) {
