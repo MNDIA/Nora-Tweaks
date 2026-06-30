@@ -7,31 +7,35 @@ on:
 
 jobs:
   build:
-    # if: ${{ !(github.event_name == 'push' && github.event.head_commit.message == '') }}
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Wrapper Validation
-        uses: gradle/actions/wrapper-validation@v4
+        uses: gradle/actions/wrapper-validation@v6
 
-      - name: Setup JDK
+      - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           java-version: 25
           distribution: temurin
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: current
+          cache-provider: basic
+          cache-disabled: true
 
-      - name: Build with Gradle
+      - name: Build
         run: gradle build
       
       - name: Archive Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Artifacts
           path: build/libs/*.jar
