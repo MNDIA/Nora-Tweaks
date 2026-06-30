@@ -178,9 +178,11 @@ public abstract class LocatorBarMixin {
         PlayerInfo entry = waypoint.id().left().map(uuid -> minecraft.getConnection().getPlayerInfo(uuid)).orElse(null);
         if (entry == null) return;
 
-        float dist = Mth.sqrt((float) waypoint.distanceSquared(minecraft.getCameraEntity()));
+        double dist = Math.sqrt(waypoint.distanceSquared(minecraft.getCameraEntity()));
         WaypointStyle style = minecraft.getWaypointStyles().get(waypoint.icon().style);
-        float scale = Mth.lerp(getProgress(dist, style.nearDistance(), style.farDistance()), 0.5f, 1.0f);
+        float styleDistance =
+            Double.isFinite(dist) ? (float) Math.min(dist, Float.MAX_VALUE) : Float.POSITIVE_INFINITY;
+        float scale = Mth.lerp(getProgress(styleDistance, style.nearDistance(), style.farDistance()), 0.5f, 1.0f);
         float size = 9 * scale;
         float drawY = y - (size - 9) / 2;
 
@@ -209,6 +211,7 @@ public abstract class LocatorBarMixin {
                 );
             }
 
+            String distanceText = formatPlayerDistance(dist);
             String text = "";
             if (module.displayPlayerName.get()) {
                 Component name = entry.getTabListDisplayName();
@@ -217,12 +220,17 @@ public abstract class LocatorBarMixin {
                 //?} else
                 /*text = (name != null ? name : Text.of(entry.getProfile().getName())).getString();
                 */
-                if (module.displayPlayerDistance.get()) text += " (" + (int) dist + "m)";
+                if (module.displayPlayerDistance.get()) text += " (" + distanceText + ")";
             } else {
-                text = (int) dist + "m";
+                text = distanceText;
             }
             renderText(context, text, x + 4.5f, drawY - 5, textColor);
         }
+    }
+
+    @Unique
+    private String formatPlayerDistance(double dist) {
+        return Double.isFinite(dist) ? (int) dist + "m" : "???";
     }
 
     @Unique

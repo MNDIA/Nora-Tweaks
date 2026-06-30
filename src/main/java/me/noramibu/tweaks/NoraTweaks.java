@@ -31,6 +31,7 @@ import me.noramibu.tweaks.commands.CalculatorCommand;
 import me.noramibu.tweaks.commands.MobCheckerCommand;
 import me.noramibu.tweaks.commands.LocateCommand;
 import me.noramibu.tweaks.commands.SeedCommand;
+import me.noramibu.tweaks.commands.HostInfoCommand;
 import me.noramibu.tweaks.utils.Seeds;
 import me.noramibu.tweaks.utils.StartupDataCollector;
 
@@ -80,6 +81,7 @@ public class NoraTweaks extends MeteorAddon {
         Commands.add(new CalculatorCommand());
         Commands.add(new SeedCommand());
         Commands.add(new LocateCommand());
+        Commands.add(new HostInfoCommand());
 
         Seeds.get();
 

@@ -17,14 +17,18 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 
 import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 public class Seeds extends System<Seeds> {
     private static final Seeds INSTANCE = new Seeds();
-    private static final String DEFAULT_CUBIOMES_VERSION = "MC_1_21_11";
+    private static final String DEFAULT_CUBIOMES_VERSION = "MC_26_1";
 
     public final HashMap<String, Seed> seeds = new HashMap<>();
 
@@ -187,6 +191,21 @@ public class Seeds extends System<Seeds> {
         return DEFAULT_CUBIOMES_VERSION;
     }
 
+    public static List<String> getSuggestedCubiomesVersions() {
+        ArrayList<String> versions = new ArrayList<>();
+        for (Method method : Cubiomes.class.getMethods()) {
+            if (!isCubiomesVersionMethod(method)) continue;
+
+            String methodName = method.getName();
+            versions.add(methodName);
+
+            String publicName = toPublicVersionName(methodName);
+            if (publicName != null) versions.add(publicName);
+        }
+        versions.sort(String.CASE_INSENSITIVE_ORDER);
+        return versions;
+    }
+
     private static String resolveCubiomesVersion() {
         return DEFAULT_CUBIOMES_VERSION;
     }
@@ -206,7 +225,7 @@ public class Seeds extends System<Seeds> {
         try {
             return (int) Cubiomes.class.getMethod(resolved).invoke(null);
         } catch (ReflectiveOperationException ignored) {
-            return Cubiomes.MC_1_21_11();
+            return Cubiomes.MC_26_1();
         }
     }
 
@@ -218,15 +237,55 @@ public class Seeds extends System<Seeds> {
             .replace('-', '_')
             .replace(' ', '_');
 
-        if (norm.matches("\\d+(\\.\\d+)+")) {
-            norm = "MC_" + norm.replace('.', '_');
+        String methodKey = norm.replace('.', '_');
+        String version = extractVersion(norm);
+        for (String candidate : new String[] {
+            norm,
+            methodKey,
+            methodKey.startsWith("MC_") ? null : "MC_" + methodKey,
+            version == null ? null : "MC_" + version.replace('.', '_'),
+            majorMinorVersion(version)
+        }) {
+            if (candidate == null) continue;
+            try {
+                Cubiomes.class.getMethod(candidate);
+                return candidate;
+            } catch (NoSuchMethodException ignored) {
+            }
         }
+        return null;
+    }
 
-        try {
-            Cubiomes.class.getMethod(norm);
-            return norm;
-        } catch (NoSuchMethodException ignored) {
-            return null;
+    private static boolean isCubiomesVersionMethod(Method method) {
+        String name = method.getName();
+        int modifiers = method.getModifiers();
+        return name.startsWith("MC_")
+            && !name.equals("MC_UNDEF")
+            && !name.equals("MC_NEWEST")
+            && method.getParameterCount() == 0
+            && method.getReturnType() == int.class
+            && Modifier.isStatic(modifiers);
+    }
+
+    private static String toPublicVersionName(String methodName) {
+        String version = methodName.substring("MC_".length());
+        if (version.startsWith("B")) return "b" + version.substring(1).replace('_', '.');
+        if (version.matches("\\d+(_\\d+)+")) return version.replace('_', '.');
+        return null;
+    }
+
+    private static String extractVersion(String norm) {
+        String[] tokens = norm.replace('_', '.').split("[^0-9.]+");
+        for (String token : tokens) {
+            if (token.matches("\\d+(\\.\\d+)+")) return token;
         }
+        return null;
+    }
+
+    private static String majorMinorVersion(String version) {
+        if (version == null) return null;
+        String[] parts = version.split("\\.");
+        if (parts.length < 2) return null;
+        return "MC_" + parts[0] + "_" + parts[1];
     }
 }
